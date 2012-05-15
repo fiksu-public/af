@@ -103,6 +103,10 @@ module Af
                                           }
                                         })
       command_line_options_store.each do |long_name,options|
+        unless options[:var]
+          var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
+          options[:var] = var_name
+        end
         if options[:var]
           self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
         end
