@@ -75,14 +75,14 @@ module Af
       end
 
       command_line_options_store.each do |key,value|
-        if ['-v', '-h', '-e'].include? key
+        if ['-v', '-h', '-e'].include? value[:short]
           found_system_parameter = true
           break
         end
       end
 
       if found_system_parameter
-        raise "Scripts can not set options '-h', '--help', '-e', '--environment', '--version', '-v'.  These are used by rails runner for some ungodly reason."
+        raise "#{self.class.name}: Scripts can not set options '-h', '--help', '-e', '--environment', '--version', '-v'.  These are used by rails runner for some ungodly reason."
       end
       command_line_options_store.merge!({
                                           "--help" => {
@@ -102,6 +102,11 @@ module Af
                                             :note => "rails version (use --application-version or -V or version of application)",
                                           }
                                         })
+      command_line_options_store.each do |long_name,options|
+        if options[:var]
+          self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
+        end
+      end
       get_options = ::Af::GetOptions.new(command_line_options_store)
       get_options.each{|option,argument|
         if option == '--?'
@@ -111,20 +116,20 @@ module Af
           puts application_version
           exit 0
         else
-          command_line_option = command_line_optioms_store[option]
+          command_line_option = command_line_options_store[option]
           if command_line_option.nil?
             puts "unknown option: #{option}"
             help(usage)
             exit 0
           elsif command_line_option.is_a?(Hash)
             argument_value = self.class.evaluate_argument_for_type(argument,
-                                                                   (command_line_option[:method] || "string"),
-                                                                   command_line_options[:argument])
+                                                                   (command_line_options_store[:method] || "string"),
+                                                                   command_line_options_store[:argument])
             if command_line_option[:method]
               argument_value = command_line_option[:method].call(option, argument_value)
             end
             if command_line_option[:var]
-              self.instance_variables["@#{command_line_option[:var]}"] = argument_value
+              self.instance_variable_set("@#{command_line_option[:var]}".to_sym, argument_value)
             end
           end
           option_handler(option, argument)
