@@ -22,7 +22,7 @@ module Af
         if (parameters[:short])
           switches << " | #{parameters[:short]}"
         end
-        unless (parameters[:argument] == :none)
+        unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
           if (parameters[:argument_note])
             switches << " #{parameters[:argument_note]}"
           elsif (parameters[:type])
@@ -117,7 +117,9 @@ module Af
             help(usage)
             exit 0
           elsif command_line_option.is_a?(Hash)
-            argument_value = self.class.evaluate_argument_for_type(argument, (command_line_option[:method] || "string"))
+            argument_value = self.class.evaluate_argument_for_type(argument,
+                                                                   (command_line_option[:method] || "string"),
+                                                                   command_line_options[:argument])
             if command_line_option[:method]
               argument_value = command_line_option[:method].call(option, argument_value)
             end
@@ -244,34 +246,37 @@ module Af
         end
       end
 
-      def evaluate_argument_for_type(argument, type_name)
+      def evaluate_argument_for_type(argument, type_name, argument_type)
         case type_name
         when :int
-          argument.to_i
+          return argument.to_i
         when :float
-          argument.to_f
+          return argument.to_f
         when :string
-          argument.to_s
+          return argument.to_s
         when :uri
-          URI.parse(argument)
+          return URI.parse(argument)
         when :date
-          Time.zone.parse(argument).to_date
+          return Time.zone.parse(argument).to_date
         when :time
-          Time.zone.parse(argument)
+          return Time.zone.parse(argument)
         when :ints
-          argument.split(',').map(&:to_i)
+          return argument.split(',').map(&:to_i)
         when :floats
-          argument.split(',').map(&:to_f)
+          return argument.split(',').map(&:to_f)
         when :strings
-          argument.split(',').map(&:to_s)
+          return argument.split(',').map(&:to_s)
         when :uris
-          argument.split(',').map{|a| URI.parse(a)}
+          return argument.split(',').map{|a| URI.parse(a)}
         when :dates
-          argument.split(',').map{|a| Time.zone.parse(a).to_date}
+          return argument.split(',').map{|a| Time.zone.parse(a).to_date}
         when :times
-          argument.split(',').map{|a| Time.zone.parse(a)}
+          return argument.split(',').map{|a| Time.zone.parse(a)}
         else
-          nil
+          if argument_type == ::Af::GetOptions::REQUIRED_ARGUMENT
+            argument = true
+          end
+          return argument
         end
       end
 
