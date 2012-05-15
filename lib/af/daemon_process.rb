@@ -3,21 +3,6 @@ require 'log4r/configurator'
 module Af
   class DaemonProcess
     include ::Af::CommandLineToolMixin
-    puts "0" * 100
-    puts self.methods
-    puts "1" * 100
-    puts self.public_methods
-    puts "2" * 100
-    puts self.private_methods
-    puts "3" * 100
-    puts self.instance_methods
-    puts "4" * 100
-    puts self.public_instance_methods
-    puts "5" * 100
-    puts self.protected_instance_methods
-    puts "6" * 100
-    puts self.private_instance_methods
-    puts "7" * 100
 
     attr_accessor :has_errors, :daemon
 
