@@ -82,19 +82,20 @@ module Af
       end
 
       if found_system_parameter
-        raise "#{self.class.name}: Scripts can not set options '-h', '--help', '-e', '--environment', '--version', '-v'.  These are used by rails runner for some ungodly reason."
+        raise "#{self.class.name}: ::Af::Application can not set options '-h', '--help', '-e', '--environment', '--version', '-v'.  These are used by rails runner for some ungodly reason."
       end
       command_line_options_store.merge!({
                                           "--help" => {
                                             :short => "-h",
                                             :argument => ::Af::GetOptions::NO_ARGUMENT,
-                                            :note => "rails runner help.  use --? for script help."
+                                            :note => "rails runner help.  use --? for application help."
                                           },
                                           "--environment" => {
                                             :short => "-e",
                                             :argument => ::Af::GetOptions::REQUIRED_ARGUMENT,
                                             :note => "rails environment to run under (development/production/test)",
-                                            :argument_note => "NAME"
+                                            :argument_note => "NAME",
+                                            :env => "RAILS_ENV"
                                           },
                                           "--versions" => {
                                             :short => "-v",
@@ -184,6 +185,12 @@ module Af
         long_name = long_name.to_s
         unless long_name[0..1] == "--"
           long_name = "--#{long_name.gsub(/_/,'-')}" 
+        end
+        unless extras[:type]
+          if extras[:default]
+            type = ruby_value_to_type_name(extras[:default])
+            extras[:type] = type unless type.nil?
+          end
         end
         argument = case extras[:argument]
                    when :required
@@ -290,6 +297,46 @@ module Af
             argument = true
           end
           return argument
+        end
+      end
+
+      def ruby_value_to_type_name(value)
+        case value.class
+        when Fixnum
+          :int
+        when Float
+          :float
+        when String
+          :string
+        when URI::HTTP
+          :uri
+        when Date
+          :date
+        when Time
+          :time
+        when DateTime
+          :time
+        when Array
+          case value.first.class
+          when Fixnum
+            :ints
+          when Float
+            :floats
+          when String
+            :strings
+          when URI::HTTP
+            :uris
+          when Date
+            :dates
+          when Time
+            :times
+          when DateTime
+            :times
+          else
+            nil
+          end
+        else
+          nil
         end
       end
 
