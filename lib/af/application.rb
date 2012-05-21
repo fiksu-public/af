@@ -61,7 +61,7 @@ module Af
     end
 
     def run(usage = nil, options = {})
-      @options = options.merge(COMMAND_LINE_OPTIONS)
+      @options = options
       @usage = (usage or "#{self.class.name} [OPTIONS]")
 
       command_line_options(@options, @usage)
