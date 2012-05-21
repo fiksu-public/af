@@ -109,7 +109,9 @@ module Af
           options[:var] = var_name
         end
         if options[:var]
-          self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
+          if options[:default].present? || !self.instance_variable_defined?("@#{options[:var]}".to_sym)
+            self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
+          end
         end
       end
       get_options = ::Af::GetOptions.new(command_line_options_store)
@@ -170,7 +172,7 @@ module Af
           if extra.is_a?(Symbol)
             if [:required, :optional, :none].include?(extra)
               extras[:argument] = extra
-            elsif [:int, :float, :string, :uri, :date, :time,:ints,:floats,:strings,:uris,:dates,:times].include?(extra)
+            elsif [:int, :float, :string, :uri, :date, :time, :symbol, :ints, :floats, :strings, :uris, :dates, :times].include?(extra)
               extras[:type] = extra
             else
               raise "#{long_name}: i don't know what to do with ':#{extra}' on this option"
@@ -249,6 +251,8 @@ module Af
           "DATE"
         when :time
           "TIME"
+        when :symbol
+          "SYMBOL"
         when :ints
           "INT1,INT2,INT3..."
         when :floats
@@ -280,6 +284,8 @@ module Af
           return Time.zone.parse(argument).to_date
         when :time
           return Time.zone.parse(argument)
+        when :symbol
+          return argument.to_sym
         when :ints
           return argument.split(',').map(&:to_i)
         when :floats
@@ -316,6 +322,8 @@ module Af
           :time
         when DateTime
           :time
+        when Symbol
+          :symbol
         when Array
           case value.first.class
           when Fixnum
