@@ -1,5 +1,5 @@
 module ::Af::Examples
-  class AfScriptWithOptions < ::Af::DaemonProcess
+  class AfScriptWithOptions < ::Af::Application
     opt do
       # two switches with no arguments
       opt :baz

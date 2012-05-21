@@ -193,7 +193,11 @@ module Af
                    when :optional
                      ::Af::GetOptions::OPTIONAL_ARGUMENT
                    when nil
-                     ::Af::GetOptions::NO_ARGUMENT
+                     if extras[:type]
+                       ::Af::GetOptions::REQUIRED_ARGUMENT
+                     else
+                       ::Af::GetOptions::NO_ARGUMENT
+                     end
                    else
                      extras[:argument]
                    end

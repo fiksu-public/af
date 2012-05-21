@@ -1,8 +1,10 @@
 require 'log4r/configurator'
 
 module Af
-  class DaemonProcess
+  class Application
     include ::Af::CommandLineToolMixin
+
+    opt :daemon, "run as daemon", :short => :d
 
     attr_accessor :has_errors, :daemon
 
@@ -10,21 +12,13 @@ module Af
 
     def self.singleton
       fail("@@singleton not initialized! Maybe you are using a Proxy before creating an instance?") unless @@singleton
-      @@singleton
+      return @@singleton
     end
 
     def initialize
       @@singleton = self
       @logger = nil
     end
-
-    COMMAND_LINE_OPTIONS = {
-      "--daemon" => {
-        :short => "-d",
-        :argument => GetOptions::NO_ARGUMENT,
-        :note => "run as daemon"
-      },
-    }
 
     def name
       return self.class.name
@@ -99,11 +93,11 @@ module Af
 
     module Proxy
       def logger
-        return ::Af::DaemonProcess.singleton.logger
+        return ::Af::Application.singleton.logger
       end
 
       def name
-        return ::Af::DaemonProcess.singleton.name
+        return ::Af::Application.singleton.name
       end
     end
   end
