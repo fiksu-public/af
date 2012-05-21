@@ -129,9 +129,10 @@ module Af
             help(usage)
             exit 0
           elsif command_line_option.is_a?(Hash)
-            argument_value = self.class.evaluate_argument_for_type(argument,
-                                                                   (command_line_options_store[:method] || "string"),
-                                                                   command_line_options_store[:argument])
+            argument = command_line_option[:set] || argument
+            type_name = self.class.ruby_value_to_type_name(command_line_option[:set]) || command_line_option[:method] || :string
+            argument_availability = command_line_option[:argument]
+            argument_value = self.class.evaluate_argument_for_type(argument, type_name, argument_availability)
             if command_line_option[:method]
               argument_value = command_line_option[:method].call(option, argument_value)
             end
@@ -192,16 +193,18 @@ module Af
           if extras[:default]
             type = ruby_value_to_type_name(extras[:default])
             extras[:type] = type unless type.nil?
+          elsif extras[:set]
+            type = ruby_value_to_type_name(extras[:set])
+            extras[:type] = type unless type.nil?
           end
         end
-        argument = case extras[:argument]
-                   when :required
+        argument = if extras[:argument] == :required
                      ::Af::GetOptions::REQUIRED_ARGUMENT
-                   when :none
+                   elsif extras[:argument] == :none
                      ::Af::GetOptions::NO_ARGUMENT
-                   when :optional
+                   elsif extras[:argument] == :optional
                      ::Af::GetOptions::OPTIONAL_ARGUMENT
-                   when nil
+                   elsif extras[:argument] == nil
                      if extras[:type]
                        ::Af::GetOptions::REQUIRED_ARGUMENT
                      else
@@ -227,6 +230,7 @@ module Af
         command_line_options_store[long_name][:default] = extras[:default] if extras[:default]
         command_line_options_store[long_name][:type] = extras[:type] if extras[:type]
         command_line_options_store[long_name][:var] = extras[:var] if extras[:var]
+        command_line_options_store[long_name][:set] = extras[:set] if extras[:set]
         command_line_options_store[long_name][:method] = extras[:method] if extras[:method]
         command_line_options_store[long_name][:method] = b if b
       end
@@ -238,68 +242,66 @@ module Af
       end
 
       def argument_note_for_type(type_name)
-        case type_name
-        when :int
+        if type_name == :int
           "INTEGER"
-        when :float
+        elsif type_name == :float
           "NUMBER"
-        when :string
+        elsif type_name == :string
           "STRING"
-        when :uri
+        elsif type_name == :uri
           "URL"
-        when :date
+        elsif type_name == :date
           "DATE"
-        when :time
+        elsif type_name == :time
           "TIME"
-        when :symbol
+        elsif type_name == :symbol
           "SYMBOL"
-        when :ints
+        elsif type_name == :ints
           "INT1,INT2,INT3..."
-        when :floats
+        elsif type_name == :floats
           "NUM1,NUM2,NUM3..."
-        when :strings
+        elsif type_name == :strings
           "STR1,STR2,STR3..."
-        when :uris
+        elsif type_name == :uris
           "URL1,URL2,URL3..."
-        when :dates
+        elsif type_name == :dates
           "DATE1,DATE2,DATE3..."
-        when :times
+        elsif type_name == :times
           "TIME1,TIME2,TIME3..."
         else
           nil
         end
       end
 
-      def evaluate_argument_for_type(argument, type_name, argument_type)
-        case type_name
-        when :int
+      def evaluate_argument_for_type(argument, type_name, argument_availability)
+        if type_name == :int
           return argument.to_i
-        when :float
+        elsif type_name == :float
           return argument.to_f
-        when :string
+        elsif type_name == :string
           return argument.to_s
-        when :uri
+        elsif type_name == :uri
           return URI.parse(argument)
-        when :date
+        elsif type_name == :date
           return Time.zone.parse(argument).to_date
-        when :time
+        elsif type_name == :time
           return Time.zone.parse(argument)
-        when :symbol
+        elsif type_name == :symbol
           return argument.to_sym
-        when :ints
+        elsif type_name == :ints
           return argument.split(',').map(&:to_i)
-        when :floats
+        elsif type_name == :floats
           return argument.split(',').map(&:to_f)
-        when :strings
+        elsif type_name == :strings
           return argument.split(',').map(&:to_s)
-        when :uris
+        elsif type_name == :uris
           return argument.split(',').map{|a| URI.parse(a)}
-        when :dates
+        elsif type_name == :dates
           return argument.split(',').map{|a| Time.zone.parse(a).to_date}
-        when :times
+        elsif type_name == :times
           return argument.split(',').map{|a| Time.zone.parse(a)}
         else
-          if argument_type == ::Af::GetOptions::REQUIRED_ARGUMENT
+          if argument_availability == ::Af::GetOptions::REQUIRED_ARGUMENT
             argument = true
           end
           return argument
@@ -307,38 +309,36 @@ module Af
       end
 
       def ruby_value_to_type_name(value)
-        case value.class
-        when Fixnum
+        if value.class == Fixnum
           :int
-        when Float
+        elsif value.class == Float
           :float
-        when String
+        elsif value.class == String
           :string
-        when URI::HTTP
+        elsif value.class == URI::HTTP
           :uri
-        when Date
+        elsif value.class == Date
           :date
-        when Time
+        elsif value.class == Time
           :time
-        when DateTime
+        elsif value.class == DateTime
           :time
-        when Symbol
+        elsif value.class == Symbol
           :symbol
-        when Array
-          case value.first.class
-          when Fixnum
+        elsif value.class == Array
+          if value.first.class == Fixnum
             :ints
-          when Float
+          elsif value.first.class == Float
             :floats
-          when String
+          elsif value.first.class == String
             :strings
-          when URI::HTTP
+          elsif value.first.class == URI::HTTP
             :uris
-          when Date
+          elsif value.first.class == Date
             :dates
-          when Time
+          elsif value.first.class == Time
             :times
-          when DateTime
+          elsif value.first.class == DateTime
             :times
           else
             nil
