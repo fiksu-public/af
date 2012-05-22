@@ -221,7 +221,7 @@ module Af
         }
         command_line_options_store[long_name][:note] = extras[:note] if extras[:note]
         if extras[:short]
-          short = extras[:short]
+          short = extras[:short].to_s
           unless short[0] == '-'
             short = "-#{short}"
           end
