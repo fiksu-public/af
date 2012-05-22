@@ -130,7 +130,8 @@ module Af
             exit 0
           elsif command_line_option.is_a?(Hash)
             argument = command_line_option[:set] || argument
-            type_name = self.class.ruby_value_to_type_name(command_line_option[:set]) || command_line_option[:method] || :string
+            type_name = self.class.ruby_value_to_type_name(command_line_option[:set])
+            type_name = :string if type_name.nil? && command_line_option[:method].nil?
             argument_availability = command_line_option[:argument]
             argument_value = self.class.evaluate_argument_for_type(argument, type_name, argument_availability)
             if command_line_option[:method]

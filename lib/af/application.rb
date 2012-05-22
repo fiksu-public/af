@@ -25,11 +25,15 @@ module Af
     end
 
     def log4r_custum_levels
-      Log4r::Configurator.custom_levels(:DEBUG, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
+      return Log4r::Configurator.custom_levels(:DEBUG, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
+    end
+
+    def log4r_name_suffix
+      return ""
     end
 
     def log4r_pattern_formatter_format
-      return "%l %C %M"
+      return "%l %C#{log4r_name_suffix} %M"
     end
 
     def log4r_formatter
