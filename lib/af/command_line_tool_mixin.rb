@@ -193,9 +193,6 @@ module Af
           if extras[:default]
             type = ruby_value_to_type_name(extras[:default])
             extras[:type] = type unless type.nil?
-          elsif extras[:set]
-            type = ruby_value_to_type_name(extras[:set])
-            extras[:type] = type unless type.nil?
           end
         end
         argument = if extras[:argument] == :required
@@ -213,6 +210,12 @@ module Af
                    else
                      extras[:argument]
                    end
+        unless extras[:type]
+          if extras[:set]
+            type = ruby_value_to_type_name(extras[:set])
+            extras[:type] = type unless type.nil?
+          end
+        end
         command_line_options_store[long_name] = {
           :argument => argument
         }
