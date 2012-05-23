@@ -18,6 +18,8 @@ module Af
     def initialize
       @@singleton = self
       @logger = nil
+      @logger_level = Log4r::ALL
+      @log4r_name_suffix = ""
     end
 
     def name
@@ -29,7 +31,11 @@ module Af
     end
 
     def log4r_name_suffix
-      return @log4r_name_suffix || ""
+      return @log4r_name_suffix
+    end
+
+    def log4r_name_suffix=(new_log4r_name_suffix)
+      return @log4r_name_suffix = new_log4r_name_suffix
     end
 
     def log4r_pattern_formatter_format
@@ -45,7 +51,11 @@ module Af
     end
 
     def logger_level
-      return Log4r::ALL
+      return @logger_level
+    end
+
+    def logger_level=(new_logger_level)
+      return @logger_level = new_logger_level
     end
 
     def logger
