@@ -39,7 +39,7 @@ module Af
 
     def set_new_log4r_name_suffix(new_log4r_name_suffix)
       @log4r_name_suffix = new_log4r_name_suffix
-      @log4r_outputter.formatter = log4r_formatter
+      @log4r_outputter.formatter = log4r_formatter if @log4r_outputter
       return @log4r_name_suffix
     end
 
