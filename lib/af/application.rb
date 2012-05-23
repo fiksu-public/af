@@ -29,7 +29,7 @@ module Af
     end
 
     def log4r_name_suffix
-      return ""
+      return @log4r_name_suffix || ""
     end
 
     def log4r_pattern_formatter_format
