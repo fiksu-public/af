@@ -1,4 +1,6 @@
+require 'log4r'
 require 'log4r/configurator'
+require 'log4r/outputter/consoleoutputters'
 
 module Af
   class Application
@@ -20,6 +22,7 @@ module Af
       @logger = nil
       @logger_level = Log4r::ALL
       @log4r_name_suffix = ""
+      @log4r_formatter = nil
     end
 
     def name
@@ -34,8 +37,10 @@ module Af
       return @log4r_name_suffix
     end
 
-    def log4r_name_suffix=(new_log4r_name_suffix)
-      return @log4r_name_suffix = new_log4r_name_suffix
+    def set_new_log4r_name_suffix(new_log4r_name_suffix)
+      @log4r_name_suffix = new_log4r_name_suffix
+      @log4r_outputter.formatter = log4r_formatter
+      return @log4r_name_suffix
     end
 
     def log4r_pattern_formatter_format
@@ -47,7 +52,10 @@ module Af
     end
 
     def log4r_outputter
-      return Log4r::StdoutOutputter.new("stdout", :formatter => log4r_formatter)
+      unless @log4r_outputter
+        @log4r_outputter = Log4r::StdoutOutputter.new("stdout", :formatter => log4r_formatter)
+      end
+      return @log4r_outputter
     end
 
     def logger_level
