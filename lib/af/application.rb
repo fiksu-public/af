@@ -23,6 +23,11 @@ module Af
       @logger_level = Log4r::ALL
       @log4r_name_suffix = ""
       @log4r_formatter = nil
+      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
+    end
+
+    def self.database_application_name
+      return "#{self.name}/#{Process.pid}"
     end
 
     def name
