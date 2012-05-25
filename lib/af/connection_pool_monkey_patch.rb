@@ -13,7 +13,7 @@ module ActiveRecord
 
       def self.initialize_connection_application_name(application_name)
         self.connection_application_name = application_name
-        ActiveRecord::Base.connection.set_server_application_name(self.class.connection_application_name)
+        ActiveRecord::Base.connection.set_server_application_name(self.connection_application_name)
       end
 
       private
