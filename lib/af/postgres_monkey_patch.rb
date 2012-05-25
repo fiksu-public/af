@@ -15,7 +15,7 @@ module ActiveRecord::ConnectionAdapters
       return execute("show #{var}").values[0][0]
     end
 
-    def self.set_server_application_name(value)
+    def set_server_application_name(value)
       set_server_variable(:application_name, value)
     end
   end
