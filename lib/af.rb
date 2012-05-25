@@ -1,3 +1,4 @@
+require 'af/postgres_monkey_patch'
 require 'af/connection_pool_monkey_patch'
 require 'af/advisory_locker'
 require 'af/get_options'
