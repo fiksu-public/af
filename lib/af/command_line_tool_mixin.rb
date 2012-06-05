@@ -51,7 +51,7 @@ module Af
 
     def command_line_options(options = {}, usage = nil)
       if usage.nil?
-        @usage = "rails runner #{self.name}.run [OPTIONS]"
+        @usage = "afrun #{self.name}.run [OPTIONS]"
       else
         @usage = usage
       end

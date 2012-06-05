@@ -1,5 +1,5 @@
 module ::Af::Examples
-  class ScriptWithOptions < ::Af::DaemonProcess
+  class ScriptWithOptions < ::Af::Application
     opt do
       opt :baz
       opt :beltch

@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
  s.description = "Af groups together gems and provides some glue and helper classes to easily creating applications in a ruby on rails environment."
  s.authors     = ["Keith Gabryelski"]
  s.email       = 'keith@fiksu.com'
+ s.executables = `git ls-files -- bin/*`.split("\n").map{|f| File.basename(f)}
  s.files       = `git ls-files`.split("\n")
  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
  s.require_path = 'lib'
