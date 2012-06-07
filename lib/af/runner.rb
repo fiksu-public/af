@@ -1,56 +1,26 @@
 class Af::Runner
-  require 'optparse'
-  require 'rbconfig'
 
-  options = { :environment => (ENV['RAILS_ENV'] || "development").dup }
   code_or_file = nil
 
   if ARGV.first.nil?
-    ARGV.push "-h"
-  end
-
-  ARGV.clone.options do |opts|
-    script_name = File.basename($0)
-    opts.banner = "Usage: runner [options] ('Some.ruby(code)' or a filename)"
-
-    opts.separator ""
-
-    opts.on("-e", "--environment=name", String,
-            "Specifies the environment for the runner to operate under (test/development/production).",
-            "Default: development") { |v| options[:environment] = v }
-
-    opts.separator ""
-
-    opts.on("-h", "--help",
-            "Show this help message.") { $stdout.puts opts; exit }
-
-    if RbConfig::CONFIG['host_os'] !~ /mswin|mingw/
-      opts.separator ""
-      opts.separator "You can also use runner as a shebang line for your scripts like this:"
-      opts.separator "-------------------------------------------------------------"
-      opts.separator "#!/usr/bin/env #{File.expand_path($0)} runner"
-      opts.separator ""
-      opts.separator "Product.all.each { |p| p.price *= 2 ; p.save! }"
-      opts.separator "-------------------------------------------------------------"
-    end
-
-    opts.order! { |o| code_or_file ||= o } rescue retry
-  end
-
-  ARGV.delete(code_or_file)
-
-  ENV["RAILS_ENV"] = options[:environment]
-
-  require APP_PATH
-  Rails.application.require_environment!
-
-  if code_or_file.nil?
-    $stderr.puts "Run '#{$0} -h' for help."
-    exit 1
-  elsif File.exist?(code_or_file)
-    $0 = code_or_file
-    eval(File.read(code_or_file), nil, code_or_file)
+    $stderr.puts "Input a class name"
+    exit
   else
+    code_or_file = ARGV.first
+  end
+
+  APP_PATH = `pwd`.chop! + '/config/application.rb'
+  if File.exist?(APP_PATH)
+    require APP_PATH
+  else
+    $stderr.puts "Go to the root project directory"
+    exit
+  end
+
+  Rails.application.require_environment!
+  begin
     eval(code_or_file)
+  rescue SyntaxError
+    $stderr.puts "#{code_or_file} - a class name is invalid"
   end
 end

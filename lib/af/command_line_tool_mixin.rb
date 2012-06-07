@@ -67,42 +67,6 @@ module Af
                          :note => "application version"
                        },
                      }))
-      found_system_parameter = false
-      if (command_line_options_store.keys.include?('--help') ||
-          command_line_options_store.keys.include?('--environment') ||
-          command_line_options_store.keys.include?('--version'))
-        found_system_parameter = true
-      end
-
-      command_line_options_store.each do |key,value|
-        if ['-v', '-h', '-e'].include? value[:short]
-          found_system_parameter = true
-          break
-        end
-      end
-
-      if found_system_parameter
-        raise "#{self.class.name}: ::Af::Application can not set options '-h', '--help', '-e', '--environment', '--version', '-v'.  These are used by rails runner for some ungodly reason."
-      end
-      command_line_options_store.merge!({
-                                          "--help" => {
-                                            :short => "-h",
-                                            :argument => ::Af::GetOptions::NO_ARGUMENT,
-                                            :note => "rails runner help.  use --? for application help."
-                                          },
-                                          "--environment" => {
-                                            :short => "-e",
-                                            :argument => ::Af::GetOptions::REQUIRED_ARGUMENT,
-                                            :note => "rails environment to run under (development/production/test)",
-                                            :argument_note => "NAME",
-                                            :env => "RAILS_ENV"
-                                          },
-                                          "--versions" => {
-                                            :short => "-v",
-                                            :argument => ::Af::GetOptions::NO_ARGUMENT,
-                                            :note => "rails version (use --application-version or -V or version of application)",
-                                          }
-                                        })
       command_line_options_store.each do |long_name,options|
         unless options[:var]
           var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
