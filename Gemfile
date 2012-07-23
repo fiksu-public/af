@@ -6,7 +6,7 @@ source "http://rubygems.org"
 gemspec
 
 gem 'log4r', '1.1.10'
-gem 'daemons'
+gem 'daemons', '1.1.8'
 gem 'uuid', '2.3.4'
 
 # Declare any dependencies that are still in development here instead of in

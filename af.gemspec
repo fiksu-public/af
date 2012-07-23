@@ -17,9 +17,9 @@ Gem::Specification.new do |s|
  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
  s.require_path = 'lib'
  s.homepage    = 'http://github.com/fiksu/af'
- s.add_dependency('log4r')
- s.add_dependency('daemons')
- s.add_dependency('uuid')
+ s.add_dependency 'log4r', '1.1.10'
+ s.add_dependency 'daemons', '1.1.8'
+ s.add_dependency 'uuid', '2.3.4'
  s.add_dependency "rails", '>= 3.0.0'
- s.add_dependency('rspec-rails')
+ s.add_dependency 'rspec-rails', '2.8.1'
 end
