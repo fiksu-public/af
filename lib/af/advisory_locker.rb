@@ -3,12 +3,12 @@ module Af::AdvisoryLocker
     base.extend(ClassMethods)
   end
 
-  def advisory_lock
-    self.class.lock_record(id)
+  def advisory_lock(&block)
+    return self.class.lock_record(id, &block)
   end
 
-  def advisory_try_lock
-    self.class.try_lock_record(id)
+  def advisory_try_lock(&block)
+    return self.class.try_lock_record(id, &block)
   end
 
   def advisory_unlock
@@ -37,19 +37,34 @@ module Af::AdvisoryLocker
       return @table_oid
     end
 
-    def lock_record(id)
+    def lock_record(id, &block)
       locked = uncached do
+        puts table_oid.inspect
         find_by_sql(["select pg_advisory_lock(?, ?)", table_oid, id])[0].pg_advisory_lock == "t"
       end
       # puts("#{locked} = #{Process.pid}.lock(#{table_name}, #{id})")
+      if block.present?
+        begin
+          return block.call
+        ensure
+          unlock_record(i)
+        end
+      end
       return locked
     end
 
-    def try_lock_record(id)
+    def try_lock_record(id, &block)
       locked = uncached do
         find_by_sql(["select pg_try_advisory_lock(?, ?)", table_oid, id])[0].pg_try_advisory_lock == "t"
       end
       # puts("#{locked} = #{Process.pid}.lock(#{table_name}, #{id})")
+      if block.present?
+        begin
+          block.call
+        ensure
+          unlock_record(i)
+        end
+      end
       return locked
     end
 

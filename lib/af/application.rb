@@ -12,8 +12,14 @@ module Af
 
     @@singleton = nil
 
-    def self.singleton
-      fail("@@singleton not initialized! Maybe you are using a Proxy before creating an instance?") unless @@singleton
+    def self.singleton(safe = false)
+      if @@singleton.nil?
+        if safe
+          @@singleton = new
+        else
+          fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
+        end
+      end
       return @@singleton
     end
 
@@ -125,6 +131,16 @@ module Af
 
       def name
         return ::Af::Application.singleton.name
+      end
+    end
+
+    module SafeProxy
+      def logger
+        return ::Af::Application.singleton(true).logger
+      end
+
+      def name
+        return ::Af::Application.singleton(true).name
       end
     end
   end
