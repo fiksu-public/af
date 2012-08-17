@@ -39,7 +39,6 @@ module Af::AdvisoryLocker
 
     def lock_record(id, &block)
       locked = uncached do
-        puts table_oid.inspect
         find_by_sql(["select pg_advisory_lock(?, ?)", table_oid, id])[0].pg_advisory_lock == "t"
       end
       # puts("#{locked} = #{Process.pid}.lock(#{table_name}, #{id})")
