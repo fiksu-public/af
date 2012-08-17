@@ -47,7 +47,7 @@ module Af::AdvisoryLocker
         begin
           return block.call
         ensure
-          unlock_record(i)
+          unlock_record(id)
         end
       end
       return locked
@@ -62,7 +62,7 @@ module Af::AdvisoryLocker
         begin
           block.call
         ensure
-          unlock_record(i)
+          unlock_record(id)
         end
       end
       return locked
