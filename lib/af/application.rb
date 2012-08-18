@@ -3,9 +3,7 @@ require 'log4r/configurator'
 require 'log4r/outputter/consoleoutputters'
 
 module Af
-  class Application
-    include ::Af::CommandLineToolMixin
-
+  class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
 
     attr_accessor :has_errors, :daemon
