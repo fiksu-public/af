@@ -106,7 +106,11 @@ module Af
     protected
     def option_handler(option, argument)
       if option == '--daemon'
-        ::Daemons.daemonize
+        ::Daemons.daemonize({
+                              :app_name => self.name,
+                              :log_mode => :system,
+                              :log_output => true
+                            })
         cleanup_after_fork
       end
     end
