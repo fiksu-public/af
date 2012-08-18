@@ -2,8 +2,6 @@ module Af
   class CommandLiner
     #### command line stuff
 
-    @@command_line_options_store = {}
-
     def application_version
       return "#{self.class.name}: unknown application version"
     end
@@ -15,8 +13,8 @@ module Af
     def help(command_line_usage)
       puts(command_line_usage)
       rows = []
-      command_line_options_store.keys.sort.each{|long_switch|
-        parameters = command_line_options_store[long_switch]
+      all_command_line_options_stores.keys.sort.each{|long_switch|
+        parameters = all_command_line_options_stores[long_switch]
         columns = []
         switches = "#{long_switch}"
         if (parameters[:short])
@@ -49,9 +47,22 @@ module Af
       return self.class.command_line_options_store
     end
 
+    def all_command_line_options_stores
+      unless @all_command_line_options_stores
+        @all_command_line_options_stores ||= {}
+
+        self.class.ancestors.reverse.each do |ancestor|
+          if ancestor.respond_to?(:command_line_options_store)
+            @all_command_line_options_stores.merge!(ancestor.command_line_options_store)
+          end
+        end
+      end
+      return @all_command_line_options_stores
+    end
+
     def command_line_options(options = {}, usage = nil)
       if usage.nil?
-        @usage = "afrun #{self.name}.run [OPTIONS]"
+        @usage = "rails runner #{self.name}.run [OPTIONS]"
       else
         @usage = usage
       end
@@ -67,7 +78,7 @@ module Af
                          :note => "application version"
                        },
                      }))
-      command_line_options_store.each do |long_name,options|
+      all_command_line_options_stores.each do |long_name,options|
         unless options[:var]
           var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
           options[:var] = var_name
@@ -78,7 +89,7 @@ module Af
           end
         end
       end
-      get_options = ::Af::GetOptions.new(command_line_options_store)
+      get_options = ::Af::GetOptions.new(all_command_line_options_stores)
       get_options.each{|option,argument|
         if option == '--?'
           help(usage)
@@ -87,7 +98,7 @@ module Af
           puts application_version
           exit 0
         else
-          command_line_option = command_line_options_store[option]
+          command_line_option = all_command_line_options_stores[option]
           if command_line_option.nil?
             puts "unknown option: #{option}"
             help(usage)
@@ -111,7 +122,8 @@ module Af
     end
 
     def self.command_line_options_store
-      return @@command_line_options_store
+      @command_line_options_store ||= {}
+      return @command_line_options_store
     end
 
     def self.opt(long_name = nil, *extra_stuff, &b)
