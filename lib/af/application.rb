@@ -1,6 +1,7 @@
 require 'log4r'
 require 'log4r/configurator'
 require 'log4r/outputter/consoleoutputters'
+require 'daemons'
 
 module Af
   class Application < ::Af::CommandLiner
@@ -105,7 +106,7 @@ module Af
     protected
     def option_handler(option, argument)
       if option == '--daemon'
-        Daemons.daemonize
+        ::Daemons.daemonize
         cleanup_after_fork
       end
     end
