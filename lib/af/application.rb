@@ -6,8 +6,11 @@ require 'daemons'
 module Af
   class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
+    opt :log_dir, "where to store log files"
+    opt :log_file, "name of file to log output"
+    opt :log_all_output, "start logging output", :default => false
 
-    attr_accessor :has_errors, :daemon
+    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_all_output
 
     @@singleton = nil
 
@@ -29,6 +32,8 @@ module Af
       @log4r_name_suffix = ""
       @log4r_formatter = nil
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
+      $stdout.sync = true
+      $stderr.sync = true
     end
 
     def self.database_application_name
@@ -98,6 +103,8 @@ module Af
 
       command_line_options(@options, @usage)
 
+      post_command_line_parsing
+
       work unless handle_one_time_command_switches
 
       exit @has_errors ? 1 : 0
@@ -105,21 +112,59 @@ module Af
 
     protected
     def option_handler(option, argument)
-      if option == '--daemon'
-        ::Daemons.daemonize({
-                              :app_name => self.name,
-                              :log_mode => :system,
-                              :log_output => true
-                            })
-        cleanup_after_fork
-      end
     end
 
-    # Overload to impose constraints on parsed arguments.  MUST call super().
+    # Overload to impose constraints on parsed arguments.
     # Return true to terminate immediately without calling work.
     # Return false for normal processing.
     def handle_one_time_command_switches
       return false
+    end
+
+    def post_command_line_parsing
+      if @daemon
+        @log_all_output = true
+      end
+
+      if @log_all_output
+        if @log_dir.blank?
+          @log_dir = Rails.root + "log"
+        end
+        if @log_file.blank?
+          @log_file = name
+        end
+        log_path = Pathname.new(@log_dir.to_s) + @log_file
+        $stdout.reopen(log_path, "a")
+        $stderr.reopen(log_path, "a")
+        $stdout.sync = true
+        $stderr.sync = true
+      end
+
+      if @daemon
+        safefork && exit # Fork and exit from the parent
+        # Detach from the controlling terminal
+        Process.setsid
+
+        trap 'SIGHUP', 'IGNORE'
+        exit if pid = safefork
+        cleanup_after_fork
+      end
+    end
+
+    def safefork
+      tryagain = true
+ 
+      while tryagain
+        tryagain = false
+        begin
+          if pid = fork
+            return pid
+          end
+        rescue Errno::EWOULDBLOCK
+          sleep 5
+          tryagain = true
+        end
+      end
     end
 
     def cleanup_after_fork
