@@ -36,8 +36,8 @@ module Af
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
       $stdout.sync = true
       $stderr.sync = true
-      update_options :log_dir, :default => Rails.root + "log"
-      update_options :log_file, :default => name
+      update_opts :log_dir, :default => Rails.root + "log"
+      update_opts :log_file, :default => name
     end
 
     def self.database_application_name

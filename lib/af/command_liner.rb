@@ -45,7 +45,7 @@ module Af
       return self.class.command_line_options_store
     end
 
-    def update_options(long_name, updates)
+    def update_opts(long_name, updates)
       long_name = long_name.to_s
       unless long_name[0..1] == "--"
         long_name = "--#{long_name.gsub(/_/,'-')}" 
