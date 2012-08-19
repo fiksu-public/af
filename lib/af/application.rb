@@ -27,6 +27,7 @@ module Af
     end
 
     def initialize
+      super
       @@singleton = self
       @logger = nil
       @logger_level = Log4r::ALL
@@ -35,6 +36,8 @@ module Af
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
       $stdout.sync = true
       $stderr.sync = true
+      update_options :log_dir, :default => Rails.root + "log"
+      update_options :log_file, :default => name
     end
 
     def self.database_application_name
@@ -128,12 +131,6 @@ module Af
       end
 
       if @log_all_output
-        if @log_dir.blank?
-          @log_dir = Rails.root + "log"
-        end
-        if @log_file.blank?
-          @log_file = name
-        end
         log_path = Pathname.new(@log_dir.to_s) + "#{@log_file}#{@log_file_extension}"
         $stdout.reopen(log_path, "a")
         $stderr.reopen(log_path, "a")

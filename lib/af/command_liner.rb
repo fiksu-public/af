@@ -1,7 +1,5 @@
 module Af
   class CommandLiner
-    #### command line stuff
-
     def application_version
       return "#{self.class.name}: unknown application version"
     end
@@ -29,15 +27,15 @@ module Af
           end
         end
         columns << switches
-        notes = ""
+        notes = []
         if parameters[:default].present?
-          notes << "(default: #{parameters[:default]}) "
+          notes << "(default: #{parameters[:default]})"
         end
         notes << (parameters[:note] || "")
         if parameters[:environment_variable]
           notes << " [env: #{parameters[:environment_variable]}]"
         end
-        columns << notes
+        columns << notes.join(' ')
         rows << columns
       }
       puts(self.class.columnized(rows))
@@ -45,6 +43,14 @@ module Af
 
     def command_line_options_store
       return self.class.command_line_options_store
+    end
+
+    def update_options(long_name, updates)
+      long_name = long_name.to_s
+      unless long_name[0..1] == "--"
+        long_name = "--#{long_name.gsub(/_/,'-')}" 
+      end
+      (all_command_line_options_stores[long_name] || {}).merge!(updates)
     end
 
     def all_command_line_options_stores
@@ -66,18 +72,6 @@ module Af
       else
         @usage = usage
       end
-      command_line_options_store.merge!(options.merge({
-                       "--?" => {
-                         :short => "-?",
-                         :argument => ::Af::GetOptions::NO_ARGUMENT,
-                         :note => "show this help"
-                       },
-                       "--application-version" => {
-                         :short => "-V",
-                         :argument => ::Af::GetOptions::NO_ARGUMENT,
-                         :note => "application version"
-                       },
-                     }))
       all_command_line_options_stores.each do |long_name,options|
         unless options[:var]
           var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
@@ -348,5 +342,9 @@ module Af
       rows.each { |row| table << "    " + columnized_row(row, sized).rstrip }
       table.join("\n")
     end
+
+    opt '?', "show this help", :short => '?'
+    opt :application_version, "application version", :short => :V
+
   end
 end
