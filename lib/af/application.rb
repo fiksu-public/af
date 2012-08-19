@@ -7,10 +7,11 @@ module Af
   class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
     opt :log_dir, "where to store log files"
-    opt :log_file, "name of file to log output"
+    opt :log_file, "base name of file to log output"
+    opt :log_file_extension, "extension name of file to log output", :default => '.log'
     opt :log_all_output, "start logging output", :default => false
 
-    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_all_output
+    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_extension, :log_all_output
 
     @@singleton = nil
 
@@ -133,7 +134,7 @@ module Af
         if @log_file.blank?
           @log_file = name
         end
-        log_path = Pathname.new(@log_dir.to_s) + @log_file
+        log_path = Pathname.new(@log_dir.to_s) + "#{@log_file}#{@log_file_extension}"
         $stdout.reopen(log_path, "a")
         $stderr.reopen(log_path, "a")
         $stdout.sync = true
