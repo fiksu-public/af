@@ -129,14 +129,14 @@ module Af
       command_line_option_groups_store[group_name] ||= {}
 
       maybe_title = extra_stuff.shift
-      if maybe_title.is_a String
+      if maybe_title.is_a? String
         command_line_option_groups_store[group_name][:title] = maybe_title
       else
         extra_stuff.shift(maybe_title)
       end
 
       maybe_description = extra_stuff.shift
-      if maybe_description.is_a String
+      if maybe_description.is_a? String
         command_line_option_groups_store[group_name][:description] = maybe_description
       else
         extra_stuff.shift(maybe_description)
