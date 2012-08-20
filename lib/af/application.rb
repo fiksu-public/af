@@ -1,12 +1,11 @@
 require 'log4r'
 require 'log4r/configurator'
 require 'log4r/outputter/consoleoutputters'
-require 'daemons'
 
 module Af
   class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
-    opt :log_dir, "where to store log files"
+    opt :log_dir, "directory to store log files", :default => "/var/log/af"
     opt :log_file, "base name of file to log output"
     opt :log_file_extension, "extension name of file to log output", :default => '.log'
     opt :log_all_output, "start logging output", :default => false
@@ -36,7 +35,6 @@ module Af
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
       $stdout.sync = true
       $stderr.sync = true
-      update_opts :log_dir, :default => Rails.root + "log"
       update_opts :log_file, :default => name
     end
 
@@ -131,7 +129,9 @@ module Af
       end
 
       if @log_all_output
-        log_path = Pathname.new(@log_dir.to_s) + "#{@log_file}#{@log_file_extension}"
+        path = Pathname.new(@log_dir.to_s)
+        path.mkpath
+        log_path =  path + "#{@log_file}#{@log_file_extension}"
         $stdout.reopen(log_path, "a")
         $stderr.reopen(log_path, "a")
         $stdout.sync = true

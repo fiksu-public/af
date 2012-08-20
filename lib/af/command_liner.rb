@@ -120,6 +120,41 @@ module Af
       return @command_line_options_store
     end
 
+    def self.command_line_option_groups_store
+      @command_line_option_groups_store ||= {}
+      return @command_line_option_groups_store
+    end
+
+    def self.opt_group(group_name, *extra_stuff)
+      command_line_option_groups_store[group_name] ||= {}
+
+      maybe_title = extra_stuff.shift
+      if maybe_title.is_a String
+        command_line_option_groups_store[group_name][:title] = maybe_title
+      else
+        extra_stuff.shift(maybe_title)
+      end
+
+      maybe_description = extra_stuff.shift
+      if maybe_description.is_a String
+        command_line_option_groups_store[group_name][:description] = maybe_description
+      else
+        extra_stuff.shift(maybe_description)
+      end
+
+      maybe_hash = extra_stuff[-1]
+      if maybe_hash.is_a? Hash
+        command_line_option_groups_store[group_name].merge!(maybe_hash)
+      end
+
+      # ignoring obvious errors
+    end
+
+    def self.opt_assign_group(opt, group)
+    end
+    def self.opt_unassign_group(opt, group)
+    end
+
     def self.opt(long_name = nil, *extra_stuff, &b)
       if b && long_name.nil?
         yield
@@ -205,6 +240,8 @@ module Af
       command_line_options_store[long_name][:set] = extras[:set] if extras[:set]
       command_line_options_store[long_name][:method] = extras[:method] if extras[:method]
       command_line_options_store[long_name][:method] = b if b
+      command_line_options_store[long_name][:group] = extras[:group] if extras[:group]
+      command_line_options_store[long_name][:hidden] = extras[:hidden] if extras[:hidden].present?
     end
 
     def self.opt_error(text)
@@ -343,8 +380,13 @@ module Af
       table.join("\n")
     end
 
-    opt '?', "show this help", :short => '?'
-    opt :application_version, "application version", :short => :V
+    opt '?', "show this help (--?? for all)", :short => '?', :group => :basic
+    opt '??', "show help for all commands", :group => :basic, :hidden => true
+    opt :application_version, "application version", :short => :V, :group => :basic
+
+    opt_group :basic, "basic options", <<-DESCRIPTION
+      These are the stanadard options offered to all Af commands.
+    DESCRIPTION
 
   end
 end
