@@ -144,7 +144,6 @@ module Af
         Process.setsid
 
         trap 'SIGHUP', 'IGNORE'
-        exit if pid = safefork
         cleanup_after_fork
       end
     end
@@ -163,6 +162,7 @@ module Af
           tryagain = true
         end
       end
+      return false
     end
 
     def cleanup_after_fork
