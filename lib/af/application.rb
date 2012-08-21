@@ -138,6 +138,7 @@ module Af
         $stderr.sync = true
       end
 
+      logger.info "-" * 100
       if @daemon
         fork do
           Process.setsid
