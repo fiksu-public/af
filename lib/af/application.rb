@@ -166,6 +166,7 @@ module Af
     def cleanup_after_fork
       config = ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(config)
+      ActiveRecord::Base.connection.reconnect!
     end
 
     module Proxy
