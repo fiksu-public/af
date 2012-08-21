@@ -140,7 +140,6 @@ module Af
 
       logger.info "-" * 100
       if @daemon
-        raise "DAEMON FAILING"
         fork do
           Process.setsid
           trap 'SIGHUP', 'IGNORE'
