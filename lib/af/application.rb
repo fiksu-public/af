@@ -146,16 +146,16 @@ module Af
           begin
             ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
           rescue
-            puts "*" * 100
-            puts "FAILED"
-            puts "*" * 100
+            logger.info "*" * 100
+            logger.info "FAILED"
+            logger.info "*" * 100
           end
           begin
             ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
           rescue
-            puts "#" * 100
-            puts "FAILED"
-            puts "#" * 100
+            logger.info "#" * 100
+            logger.info "FAILED"
+            logger.info "#" * 100
           end
         end
         exit 0
