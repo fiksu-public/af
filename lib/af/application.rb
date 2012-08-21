@@ -143,6 +143,20 @@ module Af
           Process.setsid
           trap 'SIGHUP', 'IGNORE'
           cleanup_after_fork
+          begin
+            ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
+          rescue
+            puts "*" * 100
+            puts "FAILED"
+            puts "*" * 100
+          end
+          begin
+            ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
+          rescue
+            puts "#" * 100
+            puts "FAILED"
+            puts "#" * 100
+          end
         end
         exit 0
       end
