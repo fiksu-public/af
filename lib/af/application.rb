@@ -6,7 +6,7 @@ module Af
   class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
     opt :log_dir, "directory to store log files", :default => "/var/log/af"
-    opt :log_file, "base name of file to log output"
+    opt :log_file, "base name of file to log output", :default => "af"
     opt :log_file_extension, "extension name of file to log output", :default => '.log'
     opt :log_all_output, "start logging output", :default => false
 
