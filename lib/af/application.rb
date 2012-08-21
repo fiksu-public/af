@@ -123,6 +123,7 @@ module Af
     # Return true to terminate immediately without calling work.
     # Return false for normal processing.
     def handle_one_time_command_switches
+      logger.info "handling one time command switches"
       return false
     end
 
@@ -142,12 +143,20 @@ module Af
       end
 
       if @daemon
+        logger.info "Daemonizing"
         pid = fork do
+          logger.info "forked"
           Process.setsid
           trap 'SIGHUP', 'IGNORE'
+          logger.info "cleaning up after form"
           cleanup_after_fork
+          logger.info "cleaned up"
         end
-        exit 0 if pid
+        if pid
+          logger.info "exiting from parent"
+          exit 0
+        end
+        logger.info "child continuing"
       end
     end
 
