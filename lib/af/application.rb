@@ -158,7 +158,6 @@ module Af
             logger.info "FAILED"
             logger.info "#" * 100
           end
-          return
         end
         exit 0 if pid
       end
