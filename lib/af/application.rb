@@ -2,6 +2,9 @@ require 'log4r'
 require 'log4r/configurator'
 require 'log4r/outputter/consoleoutputters'
 
+class Foo < ActiveRecord::Base
+end
+
 module Af
   class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
@@ -142,30 +145,13 @@ module Af
         pid = fork do
           Process.setsid
           trap 'SIGHUP', 'IGNORE'
-
           cleanup_after_fork
-          begin
-            ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
-          rescue
-            logger.info "*" * 100
-            logger.info "FAILED"
-            logger.info "*" * 100
-          end
-          begin
-            ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
-          rescue
-            logger.info "#" * 100
-            logger.info "FAILED"
-            logger.info "#" * 100
-          end
         end
         exit 0 if pid
       end
     end
 
     def cleanup_after_fork
-      config = ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(config)
       ActiveRecord::Base.connection.reconnect!
     end
 
