@@ -139,30 +139,13 @@ module Af
       end
 
       if @daemon
-        safefork && exit # Fork and exit from the parent
-        # Detach from the controlling terminal
-        Process.setsid
-
-        trap 'SIGHUP', 'IGNORE'
-        cleanup_after_fork
-      end
-    end
-
-    def safefork
-      tryagain = true
- 
-      while tryagain
-        tryagain = false
-        begin
-          if pid = fork
-            return pid
-          end
-        rescue Errno::EWOULDBLOCK
-          sleep 5
-          tryagain = true
+        fork do
+          Process.setsid
+          trap 'SIGHUP', 'IGNORE'
+          cleanup_after_fork
         end
+        exit 0
       end
-      return false
     end
 
     def cleanup_after_fork
