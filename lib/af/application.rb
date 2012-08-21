@@ -138,11 +138,11 @@ module Af
         $stderr.sync = true
       end
 
-      logger.info "-" * 100
       if @daemon
-        fork do
+        pid = fork do
           Process.setsid
           trap 'SIGHUP', 'IGNORE'
+
           cleanup_after_fork
           begin
             ActiveRecord::Base.find_by_sql("select * from pg_stat_activity limit 1");
@@ -158,14 +158,15 @@ module Af
             logger.info "FAILED"
             logger.info "#" * 100
           end
+          return
         end
-        exit 0
+        exit 0 if pid
       end
     end
 
     def cleanup_after_fork
-      ActiveRecord::Base.connection.disconnect!
-      ActiveRecord::Base.establish_connection
+      config = ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(config)
     end
 
     module Proxy
