@@ -146,17 +146,13 @@ module Af
         logger.info "Daemonizing"
         pid = fork
         if pid
-          logger.info "exiting from parent"
           exit 0
         else
           logger.info "forked"
           Process.setsid
           trap 'SIGHUP', 'IGNORE'
-          logger.info "cleaning up after fork"
           cleanup_after_fork
-          logger.info "cleaned up"
         end
-        logger.info "child continuing"
       end
     end
 
