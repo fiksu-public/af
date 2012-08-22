@@ -1,7 +1,7 @@
 module ActiveRecord
   module ConnectionAdapters
     class ConnectionPool
-      @connection_application_name = "/#{Process.pid}"
+      @connection_application_name = "/(pid: #{Process.pid})"
 
       def self.connection_application_name=(value)
         return @connection_application_name = value

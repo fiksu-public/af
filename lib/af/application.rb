@@ -2,18 +2,19 @@ require 'log4r'
 require 'log4r/configurator'
 require 'log4r/outputter/consoleoutputters'
 
-class Foo < ActiveRecord::Base
-end
+Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
 
 module Af
   class Application < ::Af::CommandLiner
     opt :daemon, "run as daemon", :short => :d
     opt :log_dir, "directory to store log files", :default => "/var/log/af"
-    opt :log_file, "base name of file to log output", :default => "af"
+    opt :log_file_basename, "base name of file to log output", :default => "af"
     opt :log_file_extension, "extension name of file to log output", :default => '.log'
+    opt :log_file, "full path name of log file", :type => :string, :env => "AF_LOG_FILE"
     opt :log_all_output, "start logging output", :default => false
+    opt :log_level, "set the levels of one or more loggers", :type => :string, :env => "AF_LOG_LEVEL"
 
-    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_extension, :log_all_output
+    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level
 
     @@singleton = nil
 
@@ -31,26 +32,22 @@ module Af
     def initialize
       super
       @@singleton = self
-      @logger = nil
-      @logger_level = Log4r::ALL
-      @log4r_name_suffix = ""
+      @loggers = {}
+      @logger_levels = {:default => Log4r::INFO}
       @log4r_formatter = nil
+      @log4r_name_suffix = ""
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
       $stdout.sync = true
       $stderr.sync = true
-      update_opts :log_file, :default => name
+      update_opts :log_file_basename, :default => name
     end
 
     def self.database_application_name
-      return "#{self.name}/#{Process.pid}"
+      return "#{self.name}(pid: #{Process.pid})"
     end
 
     def name
       return self.class.name
-    end
-
-    def log4r_custum_levels
-      return Log4r::Configurator.custom_levels(:DEBUG, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
     end
 
     def log4r_name_suffix
@@ -71,29 +68,33 @@ module Af
       return Log4r::PatternFormatter.new(:pattern => log4r_pattern_formatter_format)
     end
 
-    def log4r_outputter
-      unless @log4r_outputter
-        @log4r_outputter = Log4r::StdoutOutputter.new("stdout", :formatter => log4r_formatter)
+    def log4r_outputter(logger_name = :default)
+      logger_name = :default if logger_name == name
+      unless @log4r_outputter.has_key?(logger_name)
+        @log4r_outputter[logger_name] = Log4r::StdoutOutputter.new("stdout", :formatter => log4r_formatter)
       end
-      return @log4r_outputter
+      return @log4r_outputter[logger_name]
     end
 
-    def logger_level
-      return @logger_level
+    def logger_level(logger_name = :default)
+      logger_name = :default if logger_name == name
+      return @logger_levels[logger_name] || Log4r::INFO
     end
 
-    def logger_level=(new_logger_level)
-      return @logger_level = new_logger_level
+    def set_logger_level(new_logger_level, logger_name = :default)
+      logger_name = :default if logger_name == name
+      @logger_level[logger_name] = new_logger_level
     end
 
-    def logger
-      unless @logger
-        log4r_custum_levels
-        @logger = Log4r::Logger.new(name)
-        @logger.outputters = log4r_outputter
-        @logger.level = logger_level
+    def logger(logger_name = :default)
+      logger_name = :default if logger_name == name
+      unless @loggers.has_key?(logger_name)
+        l = Log4r::Logger.new(logger_name)
+        l.outputters = log4r_outputter(logger_name)
+        l.level = logger_level(logger_name)
+        @loggers[logger_name] = l
       end
-      return @logger
+      return @loggers[logger_name]
     end
 
     def self.run(*arguments)
@@ -110,7 +111,9 @@ module Af
 
       post_command_line_parsing
 
-      work unless handle_one_time_command_switches
+      pre_work
+
+      work
 
       exit @has_errors ? 1 : 0
     end
@@ -119,15 +122,36 @@ module Af
     def option_handler(option, argument)
     end
 
-    # Overload to impose constraints on parsed arguments.
-    # Return true to terminate immediately without calling work.
-    # Return false for normal processing.
-    def handle_one_time_command_switches
-      logger.info "handling one time command switches"
-      return false
+    # Overload to do any operations that need to be handled before work is called.
+    # call exit if needed.  always call super
+    def pre_work
+      logger.info "pre work"
     end
 
     def post_command_line_parsing
+      if @log_level.present?
+        begin
+          mergeables = JSON.parse(@log_level)
+        rescue StandardError => e
+          logger.error "log_level JSON parsing failure: #{e.message}, log_level: #{@log_level}"
+          mergables = {}
+        end
+        @logger_levels.merge!(mergables)
+        @logger_levels.each do |logger_name, logger_level|
+          logger_name = :default if logger_name == "default"
+          l = loggers[logger_name]
+          if l.presnet?
+            begin
+              logger_level_value = logger_level.constantize
+            rescue StandardError => e
+              logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}"
+              logger_level_value = Log4r::INFO
+            end
+            l.level = logger_level_value
+          end
+        end
+      end
+
       if @daemon
         @log_all_output = true
       end
@@ -135,7 +159,11 @@ module Af
       if @log_all_output
         path = Pathname.new(@log_dir.to_s)
         path.mkpath
-        log_path =  path + "#{@log_file}#{@log_file_extension}"
+        if @log_file.present?
+          log_path =  @log_file
+        else
+          log_path =  path + "#{@log_file_basename}#{@log_file_extension}"
+        end
         $stdout.reopen(log_path, "a")
         $stderr.reopen(log_path, "a")
         $stdout.sync = true
