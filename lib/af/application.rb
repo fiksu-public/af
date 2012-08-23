@@ -6,6 +6,8 @@ Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GRO
 
 module Af
   class Application < ::Af::CommandLiner
+    DEFAULT_LOG_LEVEL = Log4r::ALL
+
     opt :daemon, "run as daemon", :short => :d
     opt :log_dir, "directory to store log files", :default => "/var/log/af"
     opt :log_file_basename, "base name of file to log output", :default => "af"
@@ -33,8 +35,9 @@ module Af
       super
       @@singleton = self
       @loggers = {}
-      @logger_levels = {:default => Log4r::INFO}
+      @logger_levels = {:default => DEFAULT_LOG_LEVEL}
       @log4r_formatter = nil
+      @log4r_outputter = {}
       @log4r_name_suffix = ""
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
       $stdout.sync = true
@@ -64,21 +67,30 @@ module Af
       return "%l %C#{log4r_name_suffix} %M"
     end
 
-    def log4r_formatter
-      return Log4r::PatternFormatter.new(:pattern => log4r_pattern_formatter_format)
+    def log4r_pattern_formatter_external_format
+      return "%l #{name}::%C#{log4r_name_suffix} %M"
+    end
+
+    def log4r_formatter(logger_name = :default)
+      logger_name = :default if logger_name == name
+      if logger_name == :default
+        return Log4r::PatternFormatter.new(:pattern => log4r_pattern_formatter_format)
+      else
+        return Log4r::PatternFormatter.new(:pattern => log4r_pattern_formatter_external_format)
+      end
     end
 
     def log4r_outputter(logger_name = :default)
       logger_name = :default if logger_name == name
       unless @log4r_outputter.has_key?(logger_name)
-        @log4r_outputter[logger_name] = Log4r::StdoutOutputter.new("stdout", :formatter => log4r_formatter)
+        @log4r_outputter[logger_name] = Log4r::StdoutOutputter.new("stdout", :formatter => log4r_formatter(logger_name))
       end
       return @log4r_outputter[logger_name]
     end
 
     def logger_level(logger_name = :default)
       logger_name = :default if logger_name == name
-      return @logger_levels[logger_name] || Log4r::INFO
+      return @logger_levels[logger_name] || DEFAULT_LOG_LEVEL
     end
 
     def set_logger_level(new_logger_level, logger_name = :default)
@@ -89,7 +101,7 @@ module Af
     def logger(logger_name = :default)
       logger_name = :default if logger_name == name
       unless @loggers.has_key?(logger_name)
-        l = Log4r::Logger.new(logger_name)
+        l = Log4r::Logger.new(logger_name == :default ? name : logger_name)
         l.outputters = log4r_outputter(logger_name)
         l.level = logger_level(logger_name)
         @loggers[logger_name] = l
@@ -125,7 +137,7 @@ module Af
     # Overload to do any operations that need to be handled before work is called.
     # call exit if needed.  always call super
     def pre_work
-      logger.info "pre work"
+      logger.debug_gross "pre work"
     end
 
     def post_command_line_parsing
@@ -145,7 +157,7 @@ module Af
               logger_level_value = logger_level.constantize
             rescue StandardError => e
               logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}"
-              logger_level_value = Log4r::INFO
+              logger_level_value = DEFAULT_LOG_LEVEL
             end
             l.level = logger_level_value
           end
@@ -189,8 +201,8 @@ module Af
     end
 
     module Proxy
-      def logger
-        return ::Af::Application.singleton.logger
+      def logger(logger_name = (self.try(:name) || "Unknown"))
+        return ::Af::Application.singleton.logger(logger_name)
       end
 
       def name
@@ -199,8 +211,8 @@ module Af
     end
 
     module SafeProxy
-      def logger
-        return ::Af::Application.singleton(true).logger
+      def logger(logger_name = (self.try(:name) || "Unknown"))
+        return ::Af::Application.singleton(true).logger(logger_name)
       end
 
       def name
