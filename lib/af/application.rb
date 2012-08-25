@@ -83,9 +83,10 @@ module Af
     def logger(logger_name = :default)
       logger_name = :default if logger_name == af_name
       unless @loggers.has_key?(logger_name)
-        l = Log4r::Logger.new(logger_name == :default ? af_name : logger_name)
+        l = Log4r::Logger.new(logger_name == :default ? af_name : "#{af_name}::#{logger_name}")
         l.outputters = log4r_outputter(logger_name)
         l.level = logger_level(logger_name)
+        l.additive = false
         @loggers[logger_name] = l
       end
       return @loggers[logger_name]
