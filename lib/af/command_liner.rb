@@ -68,7 +68,7 @@ module Af
 
     def command_line_options(options = {}, usage = nil)
       if usage.nil?
-        @usage = "rails runner #{self.name}.run [OPTIONS]"
+        @usage = "rails runner #{self.class.name}.run [OPTIONS]"
       else
         @usage = usage
       end
@@ -100,6 +100,7 @@ module Af
           elsif command_line_option.is_a?(Hash)
             argument = command_line_option[:set] || argument
             type_name = self.class.ruby_value_to_type_name(command_line_option[:set])
+            type_name = command_line_option[:type] unless command_line_option[:type].blank?
             type_name = :string if type_name.nil? && command_line_option[:method].nil?
             argument_availability = command_line_option[:argument]
             argument_value = self.class.evaluate_argument_for_type(argument, type_name, argument_availability)
