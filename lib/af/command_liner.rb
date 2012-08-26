@@ -193,9 +193,9 @@ module Af
       # ignoring obvious errors
     end
 
-    def self.opt_assign_group(opt, group)
-    end
-    def self.opt_unassign_group(opt, group)
+    def self.opt_assign_group(opt_name, group_name)
+      command_line_option_groups_store[group_name] ||= {}
+      command_line_option_groups_store[group_name].merge!({:group => opt_name})
     end
 
     def self.opt(long_name = nil, *extra_stuff, &b)
@@ -220,7 +220,7 @@ module Af
         if extra.is_a?(Symbol)
           if [:required, :optional, :none].include?(extra)
             extras[:argument] = extra
-          elsif [:int, :float, :string, :uri, :date, :time, :symbol, :ints, :floats, :strings, :uris, :dates, :times].include?(extra)
+          elsif [:int, :float, :string, :uri, :date, :time, :symbol, :hash, :ints, :floats, :strings, :uris, :dates, :times].include?(extra)
             extras[:type] = extra
           else
             raise "#{long_name}: i don't know what to do with ':#{extra}' on this option"
@@ -308,6 +308,8 @@ module Af
         "TIME"
       elsif type_name == :symbol
         "SYMBOL"
+      elsif type_name == :hash
+        "K1=V1,K2=V2,K3=V3..."
       elsif type_name == :ints
         "INT1,INT2,INT3..."
       elsif type_name == :floats
@@ -340,6 +342,8 @@ module Af
         return Time.zone.parse(argument)
       elsif type_name == :symbol
         return argument.to_sym
+      elsif type_name == :hash
+        return Hash[argument.split(',').map{|a| a.split('=')}]
       elsif type_name == :ints
         return argument.split(',').map(&:to_i)
       elsif type_name == :floats
@@ -377,6 +381,8 @@ module Af
         :time
       elsif value.class == Symbol
         :symbol
+      elsif value.class == Hash
+        :hash
       elsif value.class == Array
         if value.first.class == Fixnum
           :ints

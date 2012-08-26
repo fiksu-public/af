@@ -15,9 +15,14 @@ module Af
       which will ensure "log dir" exists. You can also set the file simply with --log-file (the path to the
       log file must exist).
       --log-level is used to turn on and off loggers. Current levels are:
-       :DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :INFO, :WARN, :ALARM, :ERROR, :FATAL
-      the parameter for --log-level should be a JSON formated key/value pair where the key is the name
-      of the logger ("Process::ExampleProgram" for instance) and log level ("Log4r::DEBUG_MEDIUM").
+       Log4r::#{Log4r::LNAMES.join(', Log4r::')}
+      the parameter for --log-level should be a formated key/value pair where the key is the name
+      of the logger ("Process::ExampleProgram" for instance) and log level ("Log4r::DEBUG_MEDIUM") separated by '='
+      each key/value pair should be separated by a ','.  the logger name 'default' can be used as the base application
+      logger name:
+      Process::ExampleProgram=Log4r::DEBUG_MEDIUM,Process::ExampleProgram::SubClassThing=Log4r::DEBUG_FINE
+      or:
+      default=Log4r::ALL
     DESCRIPTION
 
     opt :daemon, "run as daemon", :short => :d
@@ -26,9 +31,10 @@ module Af
     opt :log_file_extension, "extension name of file to log output", :default => '.log', :group => :logging
     opt :log_file, "full path name of log file", :type => :string, :env => "AF_LOG_FILE", :group => :logging
     opt :log_all_output, "start logging output", :default => false, :group => :logging
-    opt :log_level, "set the levels of one or more loggers", :type => :string, :env => "AF_LOG_LEVEL", :group => :logging
+    opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
+    opt :log_configuration_file, "load an log4r xml configuration file", :type => :string, :argument_note => 'FILENAME', :group => :logging
 
-    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level
+    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level, :log_configuration_file
 
     @@singleton = nil
 
@@ -136,14 +142,17 @@ module Af
     end
 
     def post_command_line_parsing
-      if @log_level.present?
+      if @log_configuration_file.present?
         begin
-          mergeables = JSON.parse(@log_level)
+          Log4r::Configurator.load_xml_file(@log_configuration_file)
         rescue StandardError => e
-          logger.error "log_level JSON parsing failure: #{e.message}, log_level: #{@log_level}"
-          mergables = {}
+          puts "error while parsing log_configuration_file: #{@log_configuration_file}: #{e.message}"
+          puts "continuing ... since this is probably not fatal"
         end
-        @logger_levels.merge!(mergables)
+      end
+
+      if @log_level.present?
+        @logger_levels.merge!(@log_level)
         @logger_levels.each do |logger_name, logger_level|
           logger_name = :default if logger_name == "default"
           l = loggers[logger_name]
