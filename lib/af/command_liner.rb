@@ -8,37 +8,70 @@ module Af
       return @usage
     end
 
-    def help(command_line_usage)
+    def help(command_line_usage, show_hidden = false)
       puts(command_line_usage)
-      rows = []
-      all_command_line_options_stores.keys.sort.each{|long_switch|
-        parameters = all_command_line_options_stores[long_switch]
-        columns = []
-        switches = "#{long_switch}"
-        if (parameters[:short])
-          switches << " | #{parameters[:short]}"
-        end
-        unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
-          if (parameters[:argument_note])
-            switches << " #{parameters[:argument_note]}"
-          elsif (parameters[:type])
-            note = self.class.argument_note_for_type(parameters[:type])
-            switches << " #{note}" if note
+      # group commands
+
+      grouped_commands = all_command_line_option_groups_stores
+
+      commands = all_command_line_options_stores
+
+      commands.each do |long_switch,configuration|
+        group_name = (configuration[:group] || :basic)
+        grouped_commands[group_name] ||= {}
+        grouped_commands[group_name][:commands] ||= []
+        grouped_commands[group_name][:commands] << long_switch
+      end
+
+      output = []
+      grouped_commands.keys.sort{|a,b| (grouped_commands[a][:priority] || 50) <=> (grouped_commands[b][:priority] || 50)}.each do |group_name|
+        grouped_command = grouped_commands[group_name]
+
+        unless grouped_command[:commands].blank?
+          if grouped_command[:hidden] == true && show_hidden == false
+            # skipping hidden groups
+          else
+            output << "#{group_name}: " + grouped_command[:title]
+            output << " " + (grouped_command[:description] || "").chomp.split("\n").map(&:strip).join("\n ")
+
+            rows = []
+            grouped_command[:commands].sort.each do |long_switch|
+              parameters = commands[long_switch]
+              if parameters[:hidden] == true && show_hidden == false
+                # skipping hidden commands
+              else
+                columns = []
+                switches = "#{long_switch}"
+                if (parameters[:short])
+                  switches << " | #{parameters[:short]}"
+                end
+                unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
+                  if (parameters[:argument_note])
+                    switches << " #{parameters[:argument_note]}"
+                  elsif (parameters[:type])
+                    note = self.class.argument_note_for_type(parameters[:type])
+                    switches << " #{note}" if note
+                  end
+                end
+                columns << switches
+                notes = []
+                if parameters[:default].present?
+                  notes << "(default: #{parameters[:default]})"
+                end
+                notes << (parameters[:note] || "")
+                if parameters[:environment_variable]
+                  notes << " [env: #{parameters[:environment_variable]}]"
+                end
+                columns << notes.join(' ')
+                rows << columns
+              end
+            end
+            output += self.class.columnized(rows)
           end
         end
-        columns << switches
-        notes = []
-        if parameters[:default].present?
-          notes << "(default: #{parameters[:default]})"
-        end
-        notes << (parameters[:note] || "")
-        if parameters[:environment_variable]
-          notes << " [env: #{parameters[:environment_variable]}]"
-        end
-        columns << notes.join(' ')
-        rows << columns
-      }
-      puts(self.class.columnized(rows))
+      end
+
+      puts output.join("\n")
     end
 
     def command_line_options_store
@@ -84,9 +117,12 @@ module Af
         end
       end
       get_options = ::Af::GetOptions.new(all_command_line_options_stores)
-      get_options.each{|option,argument|
+      get_options.each do |option,argument|
         if option == '--?'
           help(usage)
+          exit 0
+        elsif option == '--??'
+          help(usage, true)
           exit 0
         elsif option == '--application-version'
           puts application_version
@@ -113,12 +149,25 @@ module Af
           end
           option_handler(option, argument)
         end
-      }
+      end
     end
 
     def self.command_line_options_store
       @command_line_options_store ||= {}
       return @command_line_options_store
+    end
+
+    def all_command_line_option_groups_stores
+      unless @all_command_line_option_groups_stores
+        @all_command_line_option_groups_stores ||= {}
+
+        self.class.ancestors.reverse.each do |ancestor|
+          if ancestor.respond_to?(:command_line_option_groups_store)
+            @all_command_line_option_groups_stores.merge!(ancestor.command_line_option_groups_store)
+          end
+        end
+      end
+      return @all_command_line_option_groups_stores
     end
 
     def self.command_line_option_groups_store
@@ -134,13 +183,6 @@ module Af
         command_line_option_groups_store[group_name][:title] = maybe_title
       else
         extra_stuff.shift(maybe_title)
-      end
-
-      maybe_description = extra_stuff.shift
-      if maybe_description.is_a? String
-        command_line_option_groups_store[group_name][:description] = maybe_description
-      else
-        extra_stuff.shift(maybe_description)
       end
 
       maybe_hash = extra_stuff[-1]
@@ -363,7 +405,7 @@ module Af
       fields.each_with_index do |f, i|
         r << sprintf("%0-#{sized[i]}s", f.to_s.gsub(/\\n\\r/, '').slice(0, sized[i]))
       end
-      r.join('   ')
+      return r.join('   ')
     end
 
     def self.columnized(rows, options = {})
@@ -376,17 +418,19 @@ module Af
         end
       end
 
-      table = []
-      rows.each { |row| table << "    " + columnized_row(row, sized).rstrip }
-      table.join("\n")
+      return rows.map { |row| "    " + columnized_row(row, sized).rstrip }
     end
 
     opt '?', "show this help (--?? for all)", :short => '?', :group => :basic
     opt '??', "show help for all commands", :group => :basic, :hidden => true
     opt :application_version, "application version", :short => :V, :group => :basic
 
-    opt_group :basic, "basic options", <<-DESCRIPTION
+    opt_group :basic, "basic options", :priority => 0, :description => <<-DESCRIPTION
       These are the stanadard options offered to all Af commands.
+    DESCRIPTION
+
+    opt_group :advanced, "advanced options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
+      These are advanced options offered to this programs.
     DESCRIPTION
 
   end
