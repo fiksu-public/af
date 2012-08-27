@@ -118,7 +118,7 @@ module Af
 
     def run(usage = nil, options = {})
       @options = options
-      @usage = (usage or "#{self.class.name} [OPTIONS]")
+      @usage = (usage or "rails runner #{self.class.name}.run [OPTIONS]")
 
       command_line_options(@options, @usage)
 
