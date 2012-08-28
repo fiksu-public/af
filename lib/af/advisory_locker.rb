@@ -19,7 +19,7 @@ module Af::AdvisoryLocker
     include ::Af::Application::SafeProxy
 
     def advisory_locker_logger
-      return logger("Af::AdvisoryLocker")
+      return af_logger("Af::AdvisoryLocker")
     end
 
     def table_oid
