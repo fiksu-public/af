@@ -59,6 +59,7 @@ module Af
                   notes << "(default: #{parameters[:default]})"
                 end
                 notes << (parameters[:note] || "")
+                notes << "(choices: #{parameters[:choices].map(&:to_s).join(', ')})" unless parameters[:choices].blank?
                 if parameters[:environment_variable]
                   notes << " [env: #{parameters[:environment_variable]}]"
                 end
@@ -138,8 +139,7 @@ module Af
             type_name = self.class.ruby_value_to_type_name(command_line_option[:set])
             type_name = command_line_option[:type] unless command_line_option[:type].blank?
             type_name = :string if type_name.nil? && command_line_option[:method].nil?
-            argument_availability = command_line_option[:argument]
-            argument_value = self.class.evaluate_argument_for_type(argument, type_name, argument_availability)
+            argument_value = self.class.evaluate_argument_for_type(argument, type_name, option, command_line_option)
             if command_line_option[:method]
               argument_value = command_line_option[:method].call(option, argument_value)
             end
@@ -220,7 +220,7 @@ module Af
         if extra.is_a?(Symbol)
           if [:required, :optional, :none].include?(extra)
             extras[:argument] = extra
-          elsif [:int, :float, :string, :uri, :date, :time, :symbol, :hash, :ints, :floats, :strings, :uris, :dates, :times].include?(extra)
+          elsif [:int, :float, :string, :uri, :date, :time, :symbol, :hash, :ints, :floats, :strings, :uris, :dates, :times, :symbols].include?(extra)
             extras[:type] = extra
           else
             raise "#{long_name}: i don't know what to do with ':#{extra}' on this option"
@@ -283,8 +283,9 @@ module Af
       command_line_options_store[long_name][:set] = extras[:set] if extras[:set]
       command_line_options_store[long_name][:method] = extras[:method] if extras[:method]
       command_line_options_store[long_name][:method] = b if b
-      command_line_options_store[long_name][:group] = extras[:group] if extras[:group]
+      command_line_options_store[long_name][:group] = extras[:group] if extras[:group].present?
       command_line_options_store[long_name][:hidden] = extras[:hidden] if extras[:hidden].present?
+      command_line_options_store[long_name][:choices] = extras[:choices] if extras[:choices].present?
     end
 
     def self.opt_error(text)
@@ -322,12 +323,17 @@ module Af
         "DATE1,DATE2,DATE3..."
       elsif type_name == :times
         "TIME1,TIME2,TIME3..."
+      elsif type_name == :symbols
+        "SYMBOL1,SYMBOL2,SYMBOL3"
       else
         nil
       end
     end
 
-    def self.evaluate_argument_for_type(argument, type_name, argument_availability)
+    def self.evaluate_argument_for_type(argument, type_name, option_name, command_line_option)
+      argument_availability = command_line_option[:argument]
+      choices = command_line_options[:choices]
+
       if type_name == :int
         return argument.to_i
       elsif type_name == :float
@@ -341,7 +347,14 @@ module Af
       elsif type_name == :time
         return Time.zone.parse(argument)
       elsif type_name == :symbol
-        return argument.to_sym
+        choice = argument.to_sym
+        unless choices.blank?
+          unless choices.include? choice
+            puts "#{option_name}: invalid choice '#{choice}' not in list of choices #{choices.map(&:to_s).join(', ')}"
+            exit 0
+          end
+        end
+        return choice 
       elsif type_name == :hash
         return Hash[argument.split(',').map{|a| a.split('=')}]
       elsif type_name == :ints
@@ -356,6 +369,17 @@ module Af
         return argument.split(',').map{|a| Time.zone.parse(a).to_date}
       elsif type_name == :times
         return argument.split(',').map{|a| Time.zone.parse(a)}
+      elsif type_name == :symbols
+        choice_list = argument.split(',').map(&:to_sym)
+        unless choices.blank?
+          choice_list.each do |choice|
+            unless choices.include? choice
+              puts "#{option_name}: invalid choice '#{choice}' not in list of choices #{choices.map(&:to_s).join(', ')}"
+              exit 0
+            end
+          end
+        end
+        return choice_list
       else
         if argument_availability == ::Af::GetOptions::REQUIRED_ARGUMENT
           argument = true
