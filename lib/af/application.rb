@@ -205,7 +205,7 @@ module Af
     end
 
     module Proxy
-      def logger(logger_name = (self.try(:af_name) || "Unknown"))
+      def af_logger(logger_name = (self.try(:af_name) || "Unknown"))
         return ::Af::Application.singleton.logger(logger_name)
       end
 
@@ -215,7 +215,7 @@ module Af
     end
 
     module SafeProxy
-      def logger(logger_name = (self.try(:af_name) || "Unknown"))
+      def af_logger(logger_name = (self.try(:af_name) || "Unknown"))
         return ::Af::Application.singleton(true).logger(logger_name)
       end
 

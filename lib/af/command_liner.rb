@@ -1,7 +1,7 @@
 module Af
   class CommandLiner
     def application_version
-      return "#{self.class.name}: unknown application version"
+      return "#{self.name}: unknown application version"
     end
 
     def usage
@@ -332,7 +332,7 @@ module Af
 
     def self.evaluate_argument_for_type(argument, type_name, option_name, command_line_option)
       argument_availability = command_line_option[:argument]
-      choices = command_line_options[:choices]
+      choices = command_line_option[:choices]
 
       if type_name == :int
         return argument.to_i
@@ -350,7 +350,7 @@ module Af
         choice = argument.to_sym
         unless choices.blank?
           unless choices.include? choice
-            puts "#{option_name}: invalid choice '#{choice}' not in list of choices #{choices.map(&:to_s).join(', ')}"
+            puts "#{self.name}: #{option_name}: invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}"
             exit 0
           end
         end
@@ -374,7 +374,7 @@ module Af
         unless choices.blank?
           choice_list.each do |choice|
             unless choices.include? choice
-              puts "#{option_name}: invalid choice '#{choice}' not in list of choices #{choices.map(&:to_s).join(', ')}"
+              puts "#{self.name}: #{option_name}: invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}"
               exit 0
             end
           end
@@ -422,6 +422,8 @@ module Af
           :times
         elsif value.first.class == DateTime
           :times
+        elsif value.first.class == Symbol
+          :symbols
         else
           nil
         end
