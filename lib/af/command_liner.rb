@@ -220,7 +220,7 @@ module Af
         if extra.is_a?(Symbol)
           if [:required, :optional, :none].include?(extra)
             extras[:argument] = extra
-          elsif [:int, :float, :string, :uri, :date, :time, :symbol, :hash, :ints, :floats, :strings, :uris, :dates, :times, :symbols].include?(extra)
+          elsif [:int, :float, :string, :uri, :date, :time, :choice, :hash, :ints, :floats, :strings, :uris, :dates, :times, :choices].include?(extra)
             extras[:type] = extra
           else
             raise "#{long_name}: i don't know what to do with ':#{extra}' on this option"
@@ -307,8 +307,8 @@ module Af
         "DATE"
       elsif type_name == :time
         "TIME"
-      elsif type_name == :symbol
-        "SYMBOL"
+      elsif type_name == :choice
+        "CHOICE"
       elsif type_name == :hash
         "K1=V1,K2=V2,K3=V3..."
       elsif type_name == :ints
@@ -323,8 +323,8 @@ module Af
         "DATE1,DATE2,DATE3..."
       elsif type_name == :times
         "TIME1,TIME2,TIME3..."
-      elsif type_name == :symbols
-        "SYMBOL1,SYMBOL2,SYMBOL3"
+      elsif type_name == :choices
+        "CHOICE1,CHOICE2,CHOICE3..."
       else
         nil
       end
@@ -346,7 +346,7 @@ module Af
         return Time.zone.parse(argument).to_date
       elsif type_name == :time
         return Time.zone.parse(argument)
-      elsif type_name == :symbol
+      elsif type_name == :choice
         choice = argument.to_sym
         unless choices.blank?
           unless choices.include? choice
@@ -369,7 +369,7 @@ module Af
         return argument.split(',').map{|a| Time.zone.parse(a).to_date}
       elsif type_name == :times
         return argument.split(',').map{|a| Time.zone.parse(a)}
-      elsif type_name == :symbols
+      elsif type_name == :choices
         choice_list = argument.split(',').map(&:to_sym)
         unless choices.blank?
           choice_list.each do |choice|
@@ -404,7 +404,7 @@ module Af
       elsif value.class == DateTime
         :time
       elsif value.class == Symbol
-        :symbol
+        :choice
       elsif value.class == Hash
         :hash
       elsif value.class == Array
@@ -423,7 +423,7 @@ module Af
         elsif value.first.class == DateTime
           :times
         elsif value.first.class == Symbol
-          :symbols
+          :choices
         else
           nil
         end
