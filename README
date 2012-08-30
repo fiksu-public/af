@@ -1,6 +1,27 @@
-Af - and application framework
+Af - an application framework
 ===========
 
+setting up papertrail
+
+#### install remote_syslog
+
+sudo gem install remote_syslog
+
+#### create /etc/log_files.yml
+
+files: 
+  - /var/log/nginx/*.log
+  - /var/log/af/*.log
+  - /home/rails/wac/shared/log/*.log
+destination:
+  host: logs.papertrailapp.com
+  port: XXXX
+
+#### start remote_syslog
+sudo remote_syslog
+
+####
+set up log rotation
 
 Example
 =======
