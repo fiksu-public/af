@@ -55,8 +55,16 @@ module Af
                 end
                 columns << switches
                 notes = []
-                if parameters[:default].present?
-                  notes << "(default: #{parameters[:default]})"
+                unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
+                  if parameters[:default].present?
+                    if parameters[:default].is_a? Array
+                      notes << "(default: #{parameters[:default].join(',')})"
+                    elsif parameters[:default].is_a? Hash
+                      notes << "(default: #{parameters[:default].map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
+                    else
+                      notes << "(default: #{parameters[:default]})"
+                    end
+                  end
                 end
                 notes << (parameters[:note] || "")
                 notes << "(choices: #{parameters[:choices].map(&:to_s).join(', ')})" unless parameters[:choices].blank?
@@ -237,7 +245,9 @@ module Af
         long_name = "--#{long_name.gsub(/_/,'-')}" 
       end
       unless extras[:type]
-        if extras[:default]
+        # if we are not just setting a switch, then we can use the default value
+        # and assume this switch has a required argument
+        if extras[:default].present? && extras[:set].nil?
           type = ruby_value_to_type_name(extras[:default])
           extras[:type] = type unless type.nil?
         end
