@@ -2,7 +2,7 @@ require 'log4r'
 require 'log4r/configurator'
 require 'log4r/outputter/consoleoutputters'
 
-Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
+Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
 
 module Af
   class Application < ::Af::CommandLiner
@@ -150,6 +150,23 @@ module Af
       logger.debug_gross "pre work"
     end
 
+    def set_logger_levels(log_level_hash)
+      logger.info "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
+      @logger_levels.merge!(log_level_hash)
+      @logger_levels.each do |logger_name, logger_level|
+        logger_name = :default if logger_name == "default"
+        l = logger(logger_name)
+        begin
+          logger_level_value = logger_level.constantize
+        rescue StandardError => e
+          logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}"
+          logger_level_value = DEFAULT_LOG_LEVEL
+        end
+        l.level = logger_level_value
+        logger.detail "set_logger_levels: #{logger_name} => #{logger_level_value}"
+      end
+    end
+
     def post_command_line_parsing
       if @log_configuration_file.present?
         begin
@@ -161,20 +178,7 @@ module Af
       end
 
       if @log_level.present?
-        @logger_levels.merge!(@log_level)
-        @logger_levels.each do |logger_name, logger_level|
-          logger_name = :default if logger_name == "default"
-          l = loggers[logger_name]
-          if l.presnet?
-            begin
-              logger_level_value = logger_level.constantize
-            rescue StandardError => e
-              logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}"
-              logger_level_value = DEFAULT_LOG_LEVEL
-            end
-            l.level = logger_level_value
-          end
-        end
+        set_logger_levels(@log_level)
       end
 
       if @daemon
