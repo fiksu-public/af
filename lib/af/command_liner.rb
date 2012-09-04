@@ -123,6 +123,9 @@ module Af
           if options[:default].present? || !self.instance_variable_defined?("@#{options[:var]}".to_sym)
             self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
           end
+          unless options[:no_accessor]
+            eval("class << self; attr_accessor :#{options[:var]}; end")
+          end
         end
       end
       get_options = ::Af::GetOptions.new(all_command_line_options_stores)
@@ -296,6 +299,7 @@ module Af
       command_line_options_store[long_name][:group] = extras[:group] if extras[:group].present?
       command_line_options_store[long_name][:hidden] = extras[:hidden] if extras[:hidden].present?
       command_line_options_store[long_name][:choices] = extras[:choices] if extras[:choices].present?
+      command_line_options_store[long_name][:no_accessor] = extras[:no_accessor] if extras[:no_accessor].present?
     end
 
     def self.opt_error(text)

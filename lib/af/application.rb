@@ -110,13 +110,13 @@ module Af
       return @loggers[logger_name]
     end
 
-    def self.run(*arguments)
+    def self._run(*arguments)
       # this ARGV hack is here for test specs to add script arguments
       ARGV[0..-1] = arguments if arguments.length > 0
-      self.new.run
+      self.new._run
     end
 
-    def run(usage = nil, options = {})
+    def _run(usage = nil, options = {})
       @options = options
       @usage = (usage or "rails runner #{self.class.name}.run [OPTIONS]")
 
@@ -126,9 +126,18 @@ module Af
 
       pre_work
 
+      return self
+    end
+
+    def _work
       work
 
       exit @has_errors ? 1 : 0
+    end
+
+    def self.run(*arguments)
+      self.new._run(*arguments)
+      _work
     end
 
     protected
