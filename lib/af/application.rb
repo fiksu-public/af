@@ -136,8 +136,8 @@ module Af
     end
 
     def self.run(*arguments)
-      self.new._run(*arguments)
-      _work
+      application = self.new._run(*arguments)
+      application._work
     end
 
     protected
