@@ -151,17 +151,25 @@ module Af
     end
 
     def set_logger_levels(log_level_hash)
-      logger.info "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
-      @logger_levels.merge!(log_level_hash)
-      @logger_levels.each do |logger_name, logger_level|
-        logger_name = :default if logger_name == "default"
-        l = logger(logger_name)
+      # (nlim) We really shouldn't log anything until the log level is set.
+      # logger.info "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
+      logger_level_value = DEFAULT_LOG_LEVEL
+      # Fix overriding
+      coerced_log_level_hash = log_level_hash.keys.each_with_object({}) { |logger_name, hash|
+        logger_level = log_level_hash[logger_name]
         begin
           logger_level_value = logger_level.constantize
         rescue StandardError => e
-          logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}"
-          logger_level_value = DEFAULT_LOG_LEVEL
+          logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}, using Log4r::ALL = (0)"
         end
+        # Use symbol :default for the Af logger, otherwise, use a string for the key
+        hash[logger_name == "default" ? :default : logger_name] = logger_level_value
+      }
+      @logger_levels.merge!(coerced_log_level_hash)
+      @logger_levels.each do |logger_name, logger_level|
+        # Get or create the logger by name
+        l = logger(logger_name)
+        # Make sure the level is overridden
         l.level = logger_level_value
         logger.detail "set_logger_levels: #{logger_name} => #{logger_level_value}"
       end
