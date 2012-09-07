@@ -64,7 +64,8 @@ module Af
     end
 
     def self.database_application_name
-      return "#{self.name}(pid: #{Process.pid})"
+      # (nlim) Truncate to Postgres limit so Postgres stops yelling
+      return "#{self.name}(pid: #{Process.pid})".slice(0, 63)
     end
 
     def af_name
