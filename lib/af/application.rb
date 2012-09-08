@@ -133,7 +133,7 @@ module Af
         log4r_logger = Log4r::Logger.new(log4r_logger_name)
         log4r_logger.outputters = af_outputters
         log4r_logger.level = logger_level(logger_name)
-        log4r_logger.additive = false # No logging to ancesters
+        log4r_logger.additive = false # No outputting to parents outputters
       end
       # Set the entry in @loggers hash if it's not defined
       @loggers[logger_name] = log4r_logger unless @loggers.has_key?(logger_name)
@@ -208,13 +208,11 @@ module Af
     def post_command_line_parsing
       if @log_configuration_file.present?
         begin
-          puts "Configuring with file"
           # Use different configurator methods based on the file extension
           case @log_configuration_file.split('.').last.downcase.to_sym
           when :xml
             Log4r::Configurator.load_xml_file(@log_configuration_file)
           when :yml
-            puts "a YAML file"
             Log4r::YamlConfigurator.decode_yaml(YAML.load_file(@log_configuration_file))
           else
             puts "NOTICE: Configuration failed: Not a .xml or .yml file."
@@ -227,10 +225,6 @@ module Af
 
       if @log_level.present?
         set_logger_levels(@log_level)
-      end
-
-      Log4r::Logger.each do |logger|
-        puts logger.inspect
       end
 
       if @daemon
