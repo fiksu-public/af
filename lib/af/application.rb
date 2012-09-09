@@ -33,8 +33,10 @@ module Af
     opt :log_all_output, "start logging output", :default => false, :group => :logging
     opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
     opt :log_configuration_file, "load an log4r xml configuration file", :type => :string, :argument_note => 'FILENAME', :group => :logging
+    opt :log_with_timestamps, "add timestamps to log output", :env => "AF_LOG_WITH_TIMESTAMPS", :group => :logging
 
     attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level, :log_configuration_file
+    attr_accessor :log_with_timestamps
 
     @@singleton = nil
 
@@ -56,7 +58,6 @@ module Af
       @logger_levels = {:default => DEFAULT_LOG_LEVEL, "Log4r" => Log4r::INFO}
       @log4r_formatter = nil
       @log4r_outputter = {}
-      @log4r_name_suffix = ""
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
@@ -84,12 +85,12 @@ module Af
     end
 
     def log4r_pattern_formatter_format
-      return "%C %l %M"
+      return "#{@log_with_timestamps ? '%d ' : ''}%C %l %M"
     end
 
     def log4r_formatter(logger_name = :default)
       logger_name = :default if logger_name == af_name
-      return Log4r::PatternFormatter.new(:pattern => log4r_pattern_formatter_format)
+      return Log4r::PatternFormatter.new(:pattern => log4r_pattern_formatter_format, :date_pattern => "%Y-%m-%d %H:%M:%S.%L")
     end
 
     def log4r_outputter(logger_name = :default)
