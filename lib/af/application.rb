@@ -34,8 +34,10 @@ module Af
     opt :log_all_output, "start logging output", :default => false, :group => :logging
     opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
     opt :log_configuration_file, "load an log4r xml or yaml configuration file", :type => :string, :argument_note => 'FILENAME', :group => :logging
+    opt :log_with_timestamps, "add timestamps to log output", :env => "AF_LOG_WITH_TIMESTAMPS", :group => :logging
 
     attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level, :log_configuration_file
+    attr_accessor :log_with_timestamps
 
     @@singleton = nil
 
@@ -54,30 +56,41 @@ module Af
       super
       @@singleton = self
       @loggers = {}
-      @logger_levels = {:default => DEFAULT_LOG_LEVEL}
-      @log4r_name_suffix = ""
-      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(self.class.database_application_name)
+      @logger_levels = {:default => DEFAULT_LOG_LEVEL, "Log4r" => Log4r::INFO}
+      set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
       update_opts :log_file_basename, :default => af_name
     end
 
-    def self.database_application_name
-      # (nlim) Truncate to Postgres limit so Postgres stops yelling
-      return "#{self.name}(pid: #{Process.pid})".slice(0, 63)
+    def set_connection_application_name(name)
+      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(name[([name.length - 63,0].max)..-1])
+    end
+
+    def startup_database_application_name
+      return "#{af_name}(pid: #{Process.pid})"
+    end
+
+    def database_application_name
+      return self.class.startup_database_application_name
     end
 
     def af_name
       return self.class.name
     end
 
-    def af_pattern_formatter_format
-      return "%l %C %M"
+    def log4r_logger_name(logger_level)
+      return ::Log4r::LNAMES[logger_level]
     end
 
-    # Af's default formatter 
-    def af_formatter
-      return Log4r::PatternFormatter.new(:pattern => af_pattern_formatter_format)
+    # Af's default pattern
+    def af_pattern_formatter_format
+      return "#{@log_with_timestamps ? '%d ' : ''}%C %l %M"
+    end
+
+    # Af's default formatter
+    def af_formatter(logger_name = :default)
+      return Log4r::PatternFormatter.new(:pattern => af_pattern_formatter_format, :date_pattern => "%Y-%m-%d %H:%M:%S.%L")
     end
 
     # Af's default outputters (add more if desired)
@@ -109,7 +122,7 @@ module Af
     # This method is not being used currently 
     def set_logger_level(new_logger_level, logger_name = :default)
       logger_name = :default if logger_name == af_name
-      @logger_level[logger_name] = new_logger_level
+      @logger_levels[logger_name] = new_logger_level
     end
 
     # (nlim) Getting the logger requires testing to see
@@ -119,12 +132,20 @@ module Af
     # Changes here allow for Af to use loggers
     # of Log4r::Logger instantiations already configured
     # via a configuration file, and if it doesn't exist
-    # make one with Af defaults and the command-line specified
-    # logger level.
+    # make one with Af defaults and the command-line specified levels.
     def logger(logger_name = :default)
       # Coerce the logger_name if needed
       logger_name = :default if logger_name == af_name
+      if logger_name.is_a? String
+        # this code is here to fix logger names that people might assume are always
+        # prefixed with the af_name.
+        while logger_name.start_with? "#{af_name}::"
+          logger_name = logger_name[("#{af_name}::".length)..-1]
+        end
+      end
       # Translate  Af logger names to Log4r logger names
+      # We want logger names prefixed with af_name so that we can find the specific script's
+      # logs in log file (by grep "^#{af_name}")
       log4r_logger_name =  logger_name == :default ? af_name : "#{af_name}::#{logger_name}"
       # Check with Log4r to see if there is a logger by this name
       # If Log4r doesn't have a logger by this name, make one with Af defaults
@@ -159,6 +180,10 @@ module Af
       return self
     end
 
+    def pre_work
+      set_connection_application_name(database_application_name)
+    end
+
     def _work
       work
 
@@ -180,29 +205,47 @@ module Af
       logger.debug_gross "pre work"
     end
 
+    def logger_logger
+      return logger("Log4r")
+    end
+
     def set_logger_levels(log_level_hash)
-      # (nlim) We really shouldn't log anything until the log level is set.
-      # logger.info "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
-      logger_level_value = DEFAULT_LOG_LEVEL
-      # Fix the overriding of default, and the checking of constantizing the arguments
-      coerced_log_level_hash = log_level_hash.keys.each_with_object({}) { |logger_name, hash|
-        logger_level = log_level_hash[logger_name]
-        begin
-          logger_level_value = logger_level.constantize
-        rescue StandardError => e
-          logger.error "invalid log level value: #{logger_level} for logger: #{logger_name}, using Log4r::ALL = 0"
+      logger_logger.debug_gross "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + ' => ' + v.to_s}.join(', ')}"
+      # we need to handle the follow cases:
+      #  "x" => 1
+      #  "x" => "1"
+      #  "x" => "INFO"
+      #  "x" => "Log4r::INFO"
+      coerced_log_level_hash = Hash[log_level_hash.map { |logger_name, logger_level|
+        logger_name = :default if logger_name == "default"
+        if logger_level.is_a? Integer
+          logger_level_value = logger_level
+        elsif logger_level.is_a? String
+          if logger_level[0] =~ /[0-9]/
+            logger_level_value = logger_level.to_i
+          else
+            logger_level_value = logger_level.constantize rescue nil
+            logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
+          end
+        else
+          logger_level_value = DEFAULT_LOG_LEVEL
         end
-        # Use symbol :default for the Af logger, otherwise, use a string for the key
-        hash[logger_name == "default" ? :default : logger_name] = logger_level_value
-      }
+        [logger_name, logger_level_value]
+      }]
       @logger_levels.merge!(coerced_log_level_hash)
       @logger_levels.each do |logger_name, logger_level|
         # Get or create the logger by name
         l = logger(logger_name)
         # Make sure the level is overridden
-        l.level = logger_level_value
-        logger.detail "set_logger_levels: #{logger_name} => #{logger_level_value}"
+        l.level = logger_level
+        logger_logger.detail "set_logger_levels: #{logger_name} => #{log4r_logger_name(logger_level)}"
       end
+
+      logger_logger.debug_fine "all loggers:"
+      Log4r::Logger.each() do |logger_name, logger_obj|
+        logger_logger.debug_fine "logger: #{logger_name}: #{logger_obj.inspect}"
+      end
+
     end
 
     def post_command_line_parsing
@@ -264,7 +307,7 @@ module Af
     end
 
     module Proxy
-      def af_logger(logger_name = (self.try(:af_name) || "Unknown"))
+      def af_logger(logger_name = (af_name || "Unknown"))
         return ::Af::Application.singleton.logger(logger_name)
       end
 
@@ -274,7 +317,7 @@ module Af
     end
 
     module SafeProxy
-      def af_logger(logger_name = (self.try(:af_name) || "Unknown"))
+      def af_logger(logger_name = (af_name || "Unknown"))
         return ::Af::Application.singleton(true).logger(logger_name)
       end
 
