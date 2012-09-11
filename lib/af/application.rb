@@ -33,7 +33,7 @@ module Af
     opt :log_file, "full path name of log file", :type => :string, :env => "AF_LOG_FILE", :group => :logging
     opt :log_all_output, "start logging output", :default => false, :group => :logging
     opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
-    opt :log_configuration_file, "load an log4r xml or yaml configuration file", :type => :string, :argument_note => 'FILENAME', :group => :logging
+    opt :log_configuration_file, "load an log4r xml or yaml configuration file", :type => :string, :env => "LOG_CONFIGURATION_FILE", :argument_note => 'FILENAME', :group => :logging
     opt :log_with_timestamps, "add timestamps to log output", :env => "AF_LOG_WITH_TIMESTAMPS", :group => :logging
 
     attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level, :log_configuration_file
