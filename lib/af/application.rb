@@ -130,7 +130,6 @@ module Af
       # Check with Log4r to see if there is a logger by this name
       # If Log4r doesn't have a logger by this name, make one with Af defaults
       log4r_logger = Log4r::Logger[log4r_logger_name]
-
       unless log4r_logger
         log4r_logger = Log4r::Logger.new(log4r_logger_name)
         log4r_logger.outputters = af_outputters
@@ -229,10 +228,12 @@ module Af
       end
 
       if af_outputters.blank?
-        if @daemon
-          add_rolling_file_outputter
-        else
-          add_stdout_outputter
+        unless Log4r::Logger[self.class.name]
+          if @daemon
+            add_rolling_file_outputter
+          else
+            add_stdout_outputter
+          end
         end
       end
 
