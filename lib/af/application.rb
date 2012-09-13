@@ -2,6 +2,7 @@ require 'log4r'
 require 'log4r/configurator'
 require 'log4r/yamlconfigurator'
 require 'log4r/outputter/consoleoutputters'
+require 'log4r_remote_syslog_outputter'
 
 Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
 
@@ -29,7 +30,7 @@ module Af
     opt :log_to_stderr, "log to stderr", :env => "AF_LOG_TO_STDERR", :group => :logging
     opt :log_to_file, "log to file", :env => "AF_LOG_TO_FILE", :group => :logging
     opt :log_to_rolling_file, "log to rolling file", :env => "AF_LOG_TO_ROLLING_FILE", :group => :logging
-    opt :log_to_papertrail, "log to papertrail", :group => :logging
+    opt :papertrail_port, "specify your papertrail logging destination", :type => :int, :env => "PAPERTRAIL_PORT", :group => :logging
     opt :log_truncate_file, "truncate log file", :default => false, :group => :logging
     opt :log_rolling_file_maximum_size, "maximum size of log file", :default => 500000, :argument_note => "BYTES", :group => :logging
     opt :log_dir, "directory to store log files", :default => "/var/log/af", :group => :logging
@@ -223,7 +224,7 @@ module Af
         add_rolling_file_outputter
       end
 
-      if @log_to_papertrail
+      if @papertrail_port
         add_papertrail_outputter
       end
 
@@ -291,12 +292,13 @@ module Af
     end
 
     def add_papertrail_outputter
-      abort("not implemented, yet")
-      outputer = nil
-      outputter.formatter = af_formatter
-      af_outputters << outputter
+      outputter = Log4r::Outputter["papertrail"] 
+      unless outputter
+        outputter = Log4r::RemoteSyslogOutputter.new("papertrail", :url => "syslog://logs.papertrailapp.com:#{@papertrail_port}", :program => "Af")
+        outputter.formatter = af_formatter
+      end
+      af_outputters << outputter unless af_outputters.include?(outputter)
     end
-
 
     def logger_logger
       return logger("Log4r")
