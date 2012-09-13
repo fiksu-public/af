@@ -116,23 +116,12 @@ module Af
 
     def logger(logger_name = :default)
       # Coerce the logger_name if needed
-      logger_name = :default if logger_name == af_name
-      if logger_name.is_a? String
-        # this code is here to fix logger names that people might assume are always
-        # prefixed with the af_name.
-        while logger_name.start_with? "#{af_name}::"
-          logger_name = logger_name[("#{af_name}::".length)..-1]
-        end
-      end
-      # Translate  Af logger names to Log4r logger names
-      # We want logger names prefixed with af_name so that we can find the specific script's
-      # logs in log file (by grep "^#{af_name}")
-      log4r_logger_name =  logger_name == :default ? af_name : "#{af_name}::#{logger_name}"
+      logger_name = af_name if logger_name == :default
       # Check with Log4r to see if there is a logger by this name
       # If Log4r doesn't have a logger by this name, make one with Af defaults
-      log4r_logger = Log4r::Logger[log4r_logger_name]
+      log4r_logger = Log4r::Logger[logger_name]
       unless log4r_logger
-        log4r_logger = Log4r::Logger.new(log4r_logger_name)
+        log4r_logger = Log4r::Logger.new(logger_name)
         log4r_logger.outputters = af_outputters
         log4r_logger.level = @log_default_level
         log4r_logger.additive = false # No outputting to parents outputters
