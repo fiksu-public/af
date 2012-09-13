@@ -72,6 +72,7 @@ module Af
 
       @af_formatter = nil
 
+      @log_default_level = Log4r::ALL
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
