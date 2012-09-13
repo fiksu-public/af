@@ -7,10 +7,8 @@ Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GRO
 
 module Af
   class Application < ::Af::CommandLiner
-    DEFAULT_LOG_LEVEL = Log4r::ALL
-
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
-      These are options associated with logging. By default, logging is turned on when
+      These are options associated with logging. By default, file logging is turned on when
       a process is daemonized.
       You can set the log file name in components with --log-dir, --log-file-basename, and --log-file_extension
       which will ensure "log dir" exists. You can also set the file simply with --log-file (the path to the
@@ -27,17 +25,25 @@ module Af
     DESCRIPTION
 
     opt :daemon, "run as daemon", :short => :d
+    opt :log_to_stdout, "log to stdout", :env => "AF_LOG_TO_STDOUT", :group => :logging
+    opt :log_to_stderr, "log to stderr", :env => "AF_LOG_TO_STDERR", :group => :logging
+    opt :log_to_file, "log to file", :env => "AF_LOG_TO_FILE", :group => :logging
+    opt :log_to_rolling_file, "log to rolling file", :env => "AF_LOG_TO_ROLLING_FILE", :group => :logging
+    opt :log_to_papertrail, "log to papertrail", :group => :logging
+    opt :log_truncate_file, "truncate log file", :default => false, :group => :logging
+    opt :log_rolling_file_maximum_size, "maximum size of log file", :default => 500000, :argument_note => "BYTES", :group => :logging
     opt :log_dir, "directory to store log files", :default => "/var/log/af", :group => :logging
     opt :log_file_basename, "base name of file to log output", :default => "af", :group => :logging
     opt :log_file_extension, "extension name of file to log output", :default => '.log', :group => :logging
     opt :log_file, "full path name of log file", :type => :string, :env => "AF_LOG_FILE", :group => :logging
-    opt :log_all_output, "start logging output", :default => false, :group => :logging
     opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
     opt :log_configuration_file, "load an log4r xml or yaml configuration file", :type => :string, :env => "LOG_CONFIGURATION_FILE", :argument_note => 'FILENAME', :group => :logging
     opt :log_with_timestamps, "add timestamps to log output", :env => "AF_LOG_WITH_TIMESTAMPS", :group => :logging
+    opt :log_default_level, "default logger level", :default => "ALL", :group => :logging
 
     attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level, :log_configuration_file
-    attr_accessor :log_with_timestamps
+    attr_accessor :log_with_timestamps, :af_outputters, :af_formatter
+    attr_accessor :af_pattern_formatter_format_prefix, :af_pattern_formatter_format_logger_name, :af_pattern_formatter_format_base, :af_pattern_formatter_format_sufix
 
     @@singleton = nil
 
@@ -55,8 +61,16 @@ module Af
     def initialize
       super
       @@singleton = self
-      @loggers = {}
-      @logger_levels = {:default => DEFAULT_LOG_LEVEL, "Log4r" => Log4r::INFO}
+
+      @af_pattern_formatter_format_prefix = ""
+      @af_pattern_formatter_format_logger_name = "//pid=#{Process.pid}/%C/%l"
+      @af_pattern_formatter_format_base = " %M"
+      @af_pattern_formatter_format_sufix = ""
+
+      @af_outputters = []
+
+      @af_formatter = nil
+
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
@@ -64,11 +78,11 @@ module Af
     end
 
     def set_connection_application_name(name)
-      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(name[([name.length - 63,0].max)..-1])
+      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(name[0...63])
     end
 
     def startup_database_application_name
-      return "#{af_name}(pid: #{Process.pid})"
+      return "//pid=#{Process.pid}/#{af_name}"
     end
 
     def database_application_name
@@ -85,54 +99,20 @@ module Af
 
     # Af's default pattern
     def af_pattern_formatter_format
-      return "#{@log_with_timestamps ? '%d ' : ''}%C %l %M"
+      return "#{af_pattern_formatter_format_prefix}#{af_pattern_formatter_format_logger_name}#{af_pattern_formatter_format_base}#{af_pattern_formatter_format_sufix}"
     end
 
-    # Af's default formatter
-    def af_formatter(logger_name = :default)
-      return Log4r::PatternFormatter.new(:pattern => af_pattern_formatter_format, :date_pattern => "%Y-%m-%d %H:%M:%S.%L")
-    end
-
-    # Af's default outputters (add more if desired)
-    def af_outputters
-      [af_stdout_outputter]
-    end
-
-    # Af's default STDOUT outputter
-    def af_stdout_outputter
-      if Log4r::Outputter["stdout"].blank?
-        return Log4r::StdoutOutputter.new("stdout", :formatter => af_formatter)
+    def af_log_compute_filename
+      path = Pathname.new(@log_dir.to_s)
+      path.mkpath
+      if @log_file.present?
+        log_path =  @log_file
       else
-        return Log4r::Outputter["stdout"]
+        log_path =  path + "#{@log_file_basename}#{@log_file_extension}"
       end
+      return log_path.to_s
     end
 
-    # Now allows for the Log4r convention of having
-    # multiple outputters per logger to be visible through Af's interface.
-    def log4r_outputters(logger_name = :default)
-      logger(logger_name).outputters
-    end
-
-    def logger_level(logger_name = :default)
-      logger_name = :default if logger_name == af_name
-      return @logger_levels[logger_name] || DEFAULT_LOG_LEVEL
-    end
-
-    # (nlim) TODO: Remove if not needed
-    # This method is not being used currently 
-    def set_logger_level(new_logger_level, logger_name = :default)
-      logger_name = :default if logger_name == af_name
-      @logger_levels[logger_name] = new_logger_level
-    end
-
-    # (nlim) Getting the logger requires testing to see
-    # if Log4r has it defined, and then if Af has it defined
-    # in the @loggers hash
-    # 
-    # Changes here allow for Af to use loggers
-    # of Log4r::Logger instantiations already configured
-    # via a configuration file, and if it doesn't exist
-    # make one with Af defaults and the command-line specified levels.
     def logger(logger_name = :default)
       # Coerce the logger_name if needed
       logger_name = :default if logger_name == af_name
@@ -150,15 +130,14 @@ module Af
       # Check with Log4r to see if there is a logger by this name
       # If Log4r doesn't have a logger by this name, make one with Af defaults
       log4r_logger = Log4r::Logger[log4r_logger_name]
-      if log4r_logger.blank?
+
+      unless log4r_logger
         log4r_logger = Log4r::Logger.new(log4r_logger_name)
         log4r_logger.outputters = af_outputters
-        log4r_logger.level = logger_level(logger_name)
+        log4r_logger.level = @log_default_level
         log4r_logger.additive = false # No outputting to parents outputters
       end
-      # Set the entry in @loggers hash if it's not defined
-      @loggers[logger_name] = log4r_logger unless @loggers.has_key?(logger_name)
-      return @loggers[logger_name]
+      return log4r_logger
     end
 
     def self._run(*arguments)
@@ -180,10 +159,6 @@ module Af
       return self
     end
 
-    def pre_work
-      set_connection_application_name(database_application_name)
-    end
-
     def _work
       work
 
@@ -199,56 +174,22 @@ module Af
     def option_handler(option, argument)
     end
 
+    # Overload to do any any command line parsing
+    # call exit if needed.  always call super
+    def post_command_line_parsing
+      @log_default_level = self.class.parse_log_level(@log_default_level)
+
+      # create formatter
+      if @log_with_timestamps
+        @af_pattern_formatter_format_prefix = "%d "
+      end
+
+      @af_formatter = Log4r::PatternFormatter.new(:pattern => af_pattern_formatter_format, :date_pattern => "%Y-%m-%d %H:%M:%S.%L")
+    end
+
     # Overload to do any operations that need to be handled before work is called.
     # call exit if needed.  always call super
     def pre_work
-      logger.debug_gross "pre work"
-    end
-
-    def logger_logger
-      return logger("Log4r")
-    end
-
-    def set_logger_levels(log_level_hash)
-      logger_logger.debug_gross "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + ' => ' + v.to_s}.join(', ')}"
-      # we need to handle the follow cases:
-      #  "x" => 1
-      #  "x" => "1"
-      #  "x" => "INFO"
-      #  "x" => "Log4r::INFO"
-      coerced_log_level_hash = Hash[log_level_hash.map { |logger_name, logger_level|
-        logger_name = :default if logger_name == "default"
-        if logger_level.is_a? Integer
-          logger_level_value = logger_level
-        elsif logger_level.is_a? String
-          if logger_level[0] =~ /[0-9]/
-            logger_level_value = logger_level.to_i
-          else
-            logger_level_value = logger_level.constantize rescue nil
-            logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
-          end
-        else
-          logger_level_value = DEFAULT_LOG_LEVEL
-        end
-        [logger_name, logger_level_value]
-      }]
-      @logger_levels.merge!(coerced_log_level_hash)
-      @logger_levels.each do |logger_name, logger_level|
-        # Get or create the logger by name
-        l = logger(logger_name)
-        # Make sure the level is overridden
-        l.level = logger_level
-        logger_logger.detail "set_logger_levels: #{logger_name} => #{log4r_logger_name(logger_level)}"
-      end
-
-      logger_logger.debug_fine "all loggers:"
-      Log4r::Logger.each() do |logger_name, logger_obj|
-        logger_logger.debug_fine "logger: #{logger_name}: #{logger_obj.inspect}"
-      end
-
-    end
-
-    def post_command_line_parsing
       if @log_configuration_file.present?
         begin
           # Use different configurator methods based on the file extension
@@ -266,26 +207,40 @@ module Af
         end
       end
 
+      # create outputters
+      if @log_to_stdout
+        add_stdout_outputter
+      end
+
+      if @log_to_stderr
+        add_stderr_outputter
+      end
+
+      if @log_to_file
+        add_file_outputter
+      end
+
+      if @log_to_rolling_file
+        add_rolling_file_outputter
+      end
+
+      if @log_to_papertrail
+        add_papertrail_outputter
+      end
+
+      if af_outputters.blank?
+        if @daemon
+          add_rolling_file_outputter
+        else
+          add_stdout_outputter
+        end
+      end
+
+      # create loggers
+
+      # set log levels
       if @log_level.present?
         set_logger_levels(@log_level)
-      end
-
-      if @daemon
-        @log_all_output = true
-      end
-
-      if @log_all_output
-        path = Pathname.new(@log_dir.to_s)
-        path.mkpath
-        if @log_file.present?
-          log_path =  @log_file
-        else
-          log_path =  path + "#{@log_file_basename}#{@log_file_extension}"
-        end
-        $stdout.reopen(log_path, "a")
-        $stderr.reopen(log_path, "a")
-        $stdout.sync = true
-        $stderr.sync = true
       end
 
       if @daemon
@@ -304,6 +259,88 @@ module Af
 
     def cleanup_after_fork
       ActiveRecord::Base.connection.reconnect!
+    end
+
+    def add_stdout_outputter
+      outputter = Log4r::Outputter.stdout
+      outputter.formatter = af_formatter
+      af_outputters << outputter
+    end
+
+    def add_stderr_outputter
+      outputter = Log4r::Outputter.stderr
+      outputter.formatter = af_formatter
+      af_outputters << outputter
+    end
+
+    def add_file_outputter
+      outputter = Log4r::FileOutputter.new('file', {:filename => af_log_compute_filename, :trunc => @log_truncate_file})
+      outputter.formatter = af_formatter
+      af_outputters << outputter
+    end
+
+    def add_rolling_file_outputter
+      outputter = Log4r::RollingFileOutputter.new('rolling_file', {
+                                                    :filename => af_log_compute_filename,
+                                                    :trunc => @log_truncate_file,
+                                                    :maxsize => @log_rolling_file_maximum_size
+                                                  })
+      outputter.formatter = af_formatter
+      af_outputters << outputter
+    end
+
+    def add_papertrail_outputter
+      abort("not implemented, yet")
+      outputer = nil
+      outputter.formatter = af_formatter
+      af_outputters << outputter
+    end
+
+
+    def logger_logger
+      return logger("Log4r")
+    end
+
+    def self.parse_log_level(logger_level)
+      if logger_level.is_a? Integer
+        logger_level_value = logger_level
+      elsif logger_level.is_a? String
+        if logger_level[0] =~ /[0-9]/
+          logger_level_value = logger_level.to_i
+        else
+          logger_level_value = logger_level.constantize rescue nil
+          logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
+        end
+      else
+        logger_level_value = Log4r::ALL
+      end
+      return logger_level_value
+    end
+
+    def parse_and_set_logger_levels(logger_info)
+      log_level_hash = JSON.parse(logger_info) rescue {:default => self.class.parse_log_level(logger_info)}
+      set_logger_levels(log_level_hash)
+    end
+
+    def set_logger_levels(log_level_hash)
+      logger_logger.debug_gross "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + ' => ' + v.to_s}.join(', ')}"
+      # we need to handle the follow cases:
+      #  "x" => 1
+      #  "x" => "1"
+      #  "x" => "INFO"
+      #  "x" => "Log4r::INFO"
+      log_level_hash.map { |logger_name, logger_level|
+        logger_name = :default if logger_name == "default"
+        logger_level_value = self.class.parse_log_level(logger_level)
+        l = logger(logger_name)
+        l.level = logger_level_value
+        logger_logger.detail "setting logger level: #{logger_name} => #{log4r_logger_name(logger_level_value)}"
+      }
+
+      logger_logger.debug_fine "all loggers:"
+      Log4r::Logger.each() do |logger_name, logger_obj|
+        logger_logger.debug_fine "logger: #{logger_name}: #{logger_obj.inspect}"
+      end
     end
 
     module Proxy
