@@ -5,6 +5,8 @@ source "http://rubygems.org"
 # development dependencies will be added by default to the :development group.
 gemspec
 
+gem 'pg_advisory_name', '1.0.0'
+gem 'pg_advisory_locker', '0.9.0'
 gem 'log4r', '1.1.10'
 gem 'uuid', '2.3.4'
 

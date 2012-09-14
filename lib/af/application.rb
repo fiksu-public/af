@@ -26,23 +26,12 @@ module Af
     DESCRIPTION
 
     opt :daemon, "run as daemon", :short => :d
-    opt :log_to_stdout, "log to stdout", :env => "AF_LOG_TO_STDOUT", :group => :logging
-    opt :log_to_stderr, "log to stderr", :env => "AF_LOG_TO_STDERR", :group => :logging
-    opt :log_to_file, "log to file", :env => "AF_LOG_TO_FILE", :group => :logging
-    opt :log_to_rolling_file, "log to rolling file", :env => "AF_LOG_TO_ROLLING_FILE", :group => :logging
-    opt :papertrail_port, "specify your papertrail logging destination", :type => :int, :env => "PAPERTRAIL_PORT", :group => :logging
-    opt :log_truncate_file, "truncate log file", :default => false, :group => :logging
-    opt :log_rolling_file_maximum_size, "maximum size of log file", :default => 500000, :argument_note => "BYTES", :group => :logging
-    opt :log_dir, "directory to store log files", :default => "/var/log/af", :group => :logging
-    opt :log_file_basename, "base name of file to log output", :default => "af", :group => :logging
-    opt :log_file_extension, "extension name of file to log output", :default => '.log', :group => :logging
-    opt :log_file, "full path name of log file", :type => :string, :env => "AF_LOG_FILE", :group => :logging
+    opt :log_configuration, "file or directory for log4r configurator", :group => :logging
     opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
-    opt :log_configuration_file, "load an log4r xml or yaml configuration file", :type => :string, :env => "LOG_CONFIGURATION_FILE", :argument_note => 'FILENAME', :group => :logging
     opt :log_with_timestamps, "add timestamps to log output", :env => "AF_LOG_WITH_TIMESTAMPS", :group => :logging
     opt :log_default_level, "default logger level", :default => "ALL", :group => :logging
 
-    attr_accessor :has_errors, :daemon, :log_dir, :log_file, :log_file_basebane, :log_file_extension, :log_all_output, :log_level, :log_configuration_file
+    attr_accessor :has_errors, :daemon, :log_level, :log_configuration
     attr_accessor :log_with_timestamps, :af_outputters, :af_formatter
     attr_accessor :af_pattern_formatter_format_prefix, :af_pattern_formatter_format_logger_name, :af_pattern_formatter_format_base, :af_pattern_formatter_format_sufix
 
@@ -77,6 +66,7 @@ module Af
       $stdout.sync = true
       $stderr.sync = true
       update_opts :log_file_basename, :default => af_name
+      update_opts :log_configuration, :default => Rails.root + "/config/logging"
     end
 
     def set_connection_application_name(name)
@@ -104,30 +94,12 @@ module Af
       return "#{af_pattern_formatter_format_prefix}#{af_pattern_formatter_format_logger_name}#{af_pattern_formatter_format_base}#{af_pattern_formatter_format_sufix}"
     end
 
-    def af_log_compute_filename
-      path = Pathname.new(@log_dir.to_s)
-      path.mkpath
-      if @log_file.present?
-        log_path =  @log_file
-      else
-        log_path =  path + "#{@log_file_basename}#{@log_file_extension}"
-      end
-      return log_path.to_s
-    end
-
     def logger(logger_name = :default)
       # Coerce the logger_name if needed
       logger_name = af_name if logger_name == :default
       # Check with Log4r to see if there is a logger by this name
       # If Log4r doesn't have a logger by this name, make one with Af defaults
-      log4r_logger = Log4r::Logger[logger_name]
-      unless log4r_logger
-        log4r_logger = Log4r::Logger.new(logger_name)
-        log4r_logger.outputters = af_outputters
-        log4r_logger.level = @log_default_level
-        log4r_logger.additive = false # No outputting to parents outputters
-      end
-      return log4r_logger
+      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
     end
 
     def self._run(*arguments)
@@ -177,62 +149,64 @@ module Af
       @af_formatter = Log4r::PatternFormatter.new(:pattern => af_pattern_formatter_format, :date_pattern => "%Y-%m-%d %H:%M:%S.%L")
     end
 
+    def logging_is_configured?
+      return Log4r::Logger['Af'].present? || Log4r::Logger['Process'].present?
+    end
+
+    def load_log_configuration_file(path)
+      begin
+        # Use different configurator methods based on the file extension
+        case path.extname.downcase.to_sym
+        when :xml
+          Log4r::Configurator.load_xml_file(path)
+        when :yml
+          Log4r::YamlConfigurator.decode_yaml(YAML.load_file(path))
+        else
+          puts "NOTICE: Configuration failed #{path}: Not a .xml or .yml file."
+        end
+      rescue StandardError => e
+        puts "error while parsing log_configuration_file: #{path}: #{e.message}"
+        puts "continuing without your configuration"
+      end
+    end
+
     # Overload to do any operations that need to be handled before work is called.
     # call exit if needed.  always call super
     def pre_work
-      if @log_configuration_file.present?
-        begin
-          # Use different configurator methods based on the file extension
-          case @log_configuration_file.split('.').last.downcase.to_sym
-          when :xml
-            Log4r::Configurator.load_xml_file(@log_configuration_file)
-          when :yml
-            Log4r::YamlConfigurator.decode_yaml(YAML.load_file(@log_configuration_file))
-          else
-            puts "NOTICE: Configuration failed: Not a .xml or .yml file."
+      # load log4r configuration files
+      if @log_configuration.present?
+        path = Pathname.new(@log_configuration)
+        if path.directory?
+          path.children(true).sort.each do |child_path|
+            if child_path.directory?
+              dir, base = pn.split
+              if base.split('-').last == Rails.env
+                child_path.children.sort.each do |grandchild_path|
+                  load_log_configuration_file(grandchild_path)
+                end
+              end
+            else
+              load_log_configuration_file(child_path)
+            end
           end
-        rescue StandardError => e
-          puts "error while parsing log_configuration_file: #{@log_configuration_file}: #{e.message}"
-          puts "continuing without your configuration"
+        else
+          load_log_configuration_file(path)
         end
       end
-
-      # create outputters
-      if @log_to_stdout
-        add_stdout_outputter
-      end
-
-      if @log_to_stderr
-        add_stderr_outputter
-      end
-
-      if @log_to_file
-        add_file_outputter
-      end
-
-      if @log_to_rolling_file
-        add_rolling_file_outputter
-      end
-
-      if @papertrail_port
-        add_papertrail_outputter
-      end
-
-      if af_outputters.blank?
-        unless Log4r::Logger[self.class.name]
-          if @daemon
-            add_rolling_file_outputter
-          else
-            add_stdout_outputter
-          end
-        end
-      end
-
-      # create loggers
 
       # set log levels
       if @log_level.present?
         set_logger_levels(@log_level)
+      end
+
+      unless logging_is_configured?
+        Log4r::Outputter.stdout.formatter = @af_formatter
+        unless Log4r::Logger['Af']
+          Log4r::Logger.new('Af').outputter << Log4r::Outputter.stdout
+        end
+        unless Log4r::Logger['Process']
+          Log4r::Logger.new('Process').outputter << Log4r::Outputter.stdout
+        end
       end
 
       if @daemon
@@ -251,34 +225,6 @@ module Af
 
     def cleanup_after_fork
       ActiveRecord::Base.connection.reconnect!
-    end
-
-    def add_stdout_outputter
-      outputter = Log4r::Outputter.stdout
-      outputter.formatter = af_formatter
-      af_outputters << outputter
-    end
-
-    def add_stderr_outputter
-      outputter = Log4r::Outputter.stderr
-      outputter.formatter = af_formatter
-      af_outputters << outputter
-    end
-
-    def add_file_outputter
-      outputter = Log4r::FileOutputter.new('file', {:filename => af_log_compute_filename, :trunc => @log_truncate_file})
-      outputter.formatter = af_formatter
-      af_outputters << outputter
-    end
-
-    def add_rolling_file_outputter
-      outputter = Log4r::RollingFileOutputter.new('rolling_file', {
-                                                    :filename => af_log_compute_filename,
-                                                    :trunc => @log_truncate_file,
-                                                    :maxsize => @log_rolling_file_maximum_size
-                                                  })
-      outputter.formatter = af_formatter
-      af_outputters << outputter
     end
 
     def add_papertrail_outputter
