@@ -18,7 +18,7 @@ module ::Af::Examples
   end
 end
 
-::Af::Examples::ScriptWithOptions.run
+#::Af::Examples::ScriptWithOptions.run
 
 # run with:
 

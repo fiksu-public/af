@@ -1,39 +1,23 @@
 require 'log4r'
 require 'log4r/configurator'
 require 'log4r/yamlconfigurator'
-require 'log4r/outputter/consoleoutputters'
 require 'log4r_remote_syslog_outputter'
-
-Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
+require 'pg_advisory_locker'
+require 'pg_application_name'
 
 module Af
   class Application < ::Af::CommandLiner
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
-      These are options associated with logging. By default, file logging is turned on when
-      a process is daemonized.
-      You can set the log file name in components with --log-dir, --log-file-basename, and --log-file_extension
-      which will ensure "log dir" exists. You can also set the file simply with --log-file (the path to the
-      log file must exist).
-      --log-level is used to turn on and off loggers. Current levels are:
+      These are options associated with logging whose core is Log4r.  Current log levels are:
        Log4r::#{Log4r::LNAMES.join(', Log4r::')}
-      the parameter for --log-level should be a formated key/value pair where the key is the name
-      of the logger ("Process::ExampleProgram" for instance) and log level ("Log4r::DEBUG_MEDIUM") separated by '='
-      each key/value pair should be separated by a ','.  the logger name 'default' can be used as the base application
-      logger name:
-      Process::ExampleProgram=Log4r::DEBUG_MEDIUM,Process::ExampleProgram::SubClassThing=Log4r::DEBUG_FINE
-      or:
-      default=Log4r::ALL
+      Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
     DESCRIPTION
 
     opt :daemon, "run as daemon", :short => :d
-    opt :log_configuration, "file or directory for log4r configurator", :group => :logging
-    opt :log_level, "set the levels of one or more loggers", :type => :hash, :env => "AF_LOG_LEVEL", :group => :logging
-    opt :log_with_timestamps, "add timestamps to log output", :env => "AF_LOG_WITH_TIMESTAMPS", :group => :logging
-    opt :log_default_level, "default logger level", :default => "ALL", :group => :logging
+    opt :log_configuration, "file or directory for log4r configurator", :type => :string, :group => :logging
+    opt :log_dump_configuration, "show the log4r configuration", :group => :logging
 
-    attr_accessor :has_errors, :daemon, :log_level, :log_configuration
-    attr_accessor :log_with_timestamps, :af_outputters, :af_formatter
-    attr_accessor :af_pattern_formatter_format_prefix, :af_pattern_formatter_format_logger_name, :af_pattern_formatter_format_base, :af_pattern_formatter_format_sufix
+    attr_accessor :has_errors, :daemon
 
     @@singleton = nil
 
@@ -52,20 +36,9 @@ module Af
       super
       @@singleton = self
 
-      @af_pattern_formatter_format_prefix = ""
-      @af_pattern_formatter_format_logger_name = "//pid=#{Process.pid}/%C/%l"
-      @af_pattern_formatter_format_base = " %M"
-      @af_pattern_formatter_format_sufix = ""
-
-      @af_outputters = []
-
-      @af_formatter = nil
-
-      @log_default_level = Log4r::ALL
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
-      update_opts :log_file_basename, :default => af_name
       update_opts :log_configuration, :default => Rails.root + "/config/logging"
     end
 
@@ -83,15 +56,6 @@ module Af
 
     def af_name
       return self.class.name
-    end
-
-    def log4r_logger_name(logger_level)
-      return ::Log4r::LNAMES[logger_level]
-    end
-
-    # Af's default pattern
-    def af_pattern_formatter_format
-      return "#{af_pattern_formatter_format_prefix}#{af_pattern_formatter_format_logger_name}#{af_pattern_formatter_format_base}#{af_pattern_formatter_format_sufix}"
     end
 
     def logger(logger_name = :default)
@@ -139,34 +103,33 @@ module Af
     # Overload to do any any command line parsing
     # call exit if needed.  always call super
     def post_command_line_parsing
-      @log_default_level = self.class.parse_log_level(@log_default_level)
-
-      # create formatter
-      if @log_with_timestamps
-        @af_pattern_formatter_format_prefix = "%d "
-      end
-
-      @af_formatter = Log4r::PatternFormatter.new(:pattern => af_pattern_formatter_format, :date_pattern => "%Y-%m-%d %H:%M:%S.%L")
     end
 
-    def logging_is_configured?
-      return Log4r::Logger['Af'].present? || Log4r::Logger['Process'].present?
-    end
-
-    def load_log_configuration_file(path)
+    def logging_load_configuration_file(path)
       begin
-        # Use different configurator methods based on the file extension
-        case path.extname.downcase.to_sym
-        when :xml
-          Log4r::Configurator.load_xml_file(path)
-        when :yml
-          Log4r::YamlConfigurator.decode_yaml(YAML.load_file(path))
-        else
-          puts "NOTICE: Configuration failed #{path}: Not a .xml or .yml file."
-        end
+        Log4r::YamlConfigurator.load_yaml_file(path.to_s)
       rescue StandardError => e
         puts "error while parsing log_configuration_file: #{path}: #{e.message}"
         puts "continuing without your configuration"
+        puts e.backtrace.join("\n")
+        return false
+      end
+      return true
+    end
+
+    def logging_load_configuration(pathname, application_filename = "#{af_name}.yml", general_filename = "logging.yml")
+      path = Pathname.new(pathname)
+      if path.directory?
+        application_file_path = path + application_filename
+        if application_file_path.file?
+          return logging_load_configuration_file(application_file_path)
+        end
+        general_file_path = path + general_filename
+        if general_file_path.file?
+          return logging_load_configuration_file(general_file_path)
+        end
+      else
+        return logging_load_configuration_file(path)
       end
     end
 
@@ -174,39 +137,17 @@ module Af
     # call exit if needed.  always call super
     def pre_work
       # load log4r configuration files
+      logging_configured = false
       if @log_configuration.present?
-        path = Pathname.new(@log_configuration)
-        if path.directory?
-          path.children(true).sort.each do |child_path|
-            if child_path.directory?
-              dir, base = pn.split
-              if base.split('-').last == Rails.env
-                child_path.children.sort.each do |grandchild_path|
-                  load_log_configuration_file(grandchild_path)
-                end
-              end
-            else
-              load_log_configuration_file(child_path)
-            end
-          end
-        else
-          load_log_configuration_file(path)
-        end
+        logging_configured = logging_load_configuration(@log_configuration)
       end
 
-      # set log levels
-      if @log_level.present?
-        set_logger_levels(@log_level)
-      end
-
-      unless logging_is_configured?
-        Log4r::Outputter.stdout.formatter = @af_formatter
-        unless Log4r::Logger['Af']
-          Log4r::Logger.new('Af').outputter << Log4r::Outputter.stdout
+      if @log_dump_configuration
+        puts "logging_configured: #{logging_configured}"
+        Log4r::Logger.each_logger do |logger|
+          puts logger.inspect
         end
-        unless Log4r::Logger['Process']
-          Log4r::Logger.new('Process').outputter << Log4r::Outputter.stdout
-        end
+        exit 0
       end
 
       if @daemon
@@ -225,19 +166,6 @@ module Af
 
     def cleanup_after_fork
       ActiveRecord::Base.connection.reconnect!
-    end
-
-    def add_papertrail_outputter
-      outputter = Log4r::Outputter["papertrail"] 
-      unless outputter
-        outputter = Log4r::RemoteSyslogOutputter.new("papertrail", :url => "syslog://logs.papertrailapp.com:#{@papertrail_port}", :program => "Af")
-        outputter.formatter = af_formatter
-      end
-      af_outputters << outputter unless af_outputters.include?(outputter)
-    end
-
-    def logger_logger
-      return logger("Log4r")
     end
 
     def self.parse_log_level(logger_level)
@@ -262,7 +190,6 @@ module Af
     end
 
     def set_logger_levels(log_level_hash)
-      logger_logger.debug_gross "set_logger_levels: #{log_level_hash.map{|k,v| k.to_s + ' => ' + v.to_s}.join(', ')}"
       # we need to handle the follow cases:
       #  "x" => 1
       #  "x" => "1"
@@ -273,13 +200,7 @@ module Af
         logger_level_value = self.class.parse_log_level(logger_level)
         l = logger(logger_name)
         l.level = logger_level_value
-        logger_logger.detail "setting logger level: #{logger_name} => #{log4r_logger_name(logger_level_value)}"
       }
-
-      logger_logger.debug_fine "all loggers:"
-      Log4r::Logger.each() do |logger_name, logger_obj|
-        logger_logger.debug_fine "logger: #{logger_name}: #{logger_obj.inspect}"
-      end
     end
 
     module Proxy

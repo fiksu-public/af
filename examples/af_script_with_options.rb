@@ -23,7 +23,7 @@ module ::Af::Examples
   end
 end
 
-::Af::Examples::AfScriptWithOptions.run
+#::Af::Examples::AfScriptWithOptions.run
 
 # run with:
 

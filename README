@@ -1,28 +1,57 @@
 Af - an application framework
-===========
+=============================
 
-setting up papertrail
+This application framework supports:
 
-#### install remote_syslog
+* Application class with supporting infrastruction
+* command line options integrated into instance variables
+* logging via log4r with support for papertrail
+* postgres advisory locking via pg_advisor_locker gem
+* postgres database connection updates via pg_application_name gem
+* threads and message passing
 
-sudo gem install remote_syslog
+Application class
+=================
 
-#### create /etc/log_files.yml
+The class ::Af::Application provides a basic interface to the start-up
+and management of Ruby on Rails scripts.
 
-files: 
-  - /var/log/nginx/*.log
-  - /var/log/af/*.log
-  - /home/rails/wac/shared/log/*.log
-destination:
-  host: logs.papertrailapp.com
-  port: XXXX
+A simple example of an application which logs its startup and exits
+is:
 
-#### start remote_syslog
-sudo remote_syslog
+    class MyApplication < ::Af::Application
+      opt :word, "the word", :short => :w, :default => "bird"
 
-####
-set up log rotation
+      def work
+	logger.info "Started up: #{@word} is the word"
+        exit 0
+      end
+    end 
 
-Example
-=======
+Class-method "opt" specifies command line parameter(s) whose arguments
+are stored in instance variables.  MyApplication specifies a single
+parameter "--word" with a short alias "-w" that accepts a string
+argument (whose default is "bird", so we know it should be a string).
+The parameters value will be stored in class instance variable: @word.
+More information on command line option glue is provided in the
+Command Line Options section.
 
+The method "logger" is available to ::Af::Application to create and
+fetch log4r loggers.  In this case, we use the basic application
+logger (named "MyApplication") and logs an INFO level message.  More
+information on the glue ::Af::Application provides with Log4r is
+in the logging section below.
+
+This application would be run from the command line as:
+
+    $ script/rails runner MyApplication.run --word grease
+
+The class method #run provides start-up glue for applications, parsing
+command line options, environment variables and configuration files.
+The instance method #work is where application codes start their work.
+
+Command Line Options
+====================
+
+Logging with Log4r
+==================
