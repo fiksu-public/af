@@ -1,5 +1,4 @@
 log4r_config:
-  # define all pre config ...
   pre_config:
     custom_levels:
       - DEBUG
@@ -17,19 +16,12 @@ log4r_config:
     root  :
       level: ALL
 
-  # define all loggers ...
   loggers:
-    - name      : Af
-      level     : DETAIL
+    - name      : root
+      level     : ALL
       outputters:
         - stdout
 
-    - name      : Process
-      level     : DEBUG
-      outputters:
-        - stdout
-
-  # define all outputters (incl. formatters)
   outputters:
     - type     : StdoutOutputter
       name     : stdout

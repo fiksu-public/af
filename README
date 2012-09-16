@@ -55,3 +55,13 @@ Command Line Options
 
 Logging with Log4r
 ==================
+
+Some changes to Log4r:
+
+* root loggers are no longer null loggers -- you can add outputters to them
+* the global logger is used to set a global log level (root is no longer used for this)
+* yaml configurator has been updated to handle new root logger semantics
+* yaml configurator has been updated to accept a set of files AND sections (default section: log4r_config)
+
+What this really means is that you can set up one outputter in the root
+logger to manage the default logging behavior.

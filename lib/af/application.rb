@@ -15,7 +15,10 @@ module Af
     opt :daemon, "run as daemon", :short => :d
     opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"], :group => :logging
     opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."], :group => :logging
+    opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config", "log4r_config_stdout"], :group => :logging
     opt :log_dump_configuration, "show the log4r configuration", :group => :logging
+    opt :log_stdout, "log to stdout", :group => :logging
+    opt :log_file, "log to file", :group => :logging
 
     attr_accessor :has_errors, :daemon
 
@@ -103,11 +106,17 @@ module Af
     # Overload to do any any command line parsing
     # call exit if needed.  always call super
     def post_command_line_parsing
+      if @log_stdout
+        @log_configuration_section_names = ["log4r_config", "log4r_config_stdout"]
+      end
+      if @log_file
+        @log_configuration_section_names = ["log4r_config", "log4r_config_file"]
+      end
     end
 
-    def logging_load_configuration_files(*files)
+    def logging_load_configuration_files(files, yaml_sections)
       begin
-        Af::Log4rConfigurator.load_yaml_files(*files)
+        Log4r::YamlConfigurator.load_yaml_files(files, yaml_sections)
       rescue StandardError => e
         puts "error while parsing log configuration files: #{e.message}"
         puts "continuing without your configuration"
@@ -125,7 +134,7 @@ module Af
           files << pathname.to_s if pathname.file?
         end
       end
-      logging_load_configuration_files(*files)
+      logging_load_configuration_files(files, @log_configuration_section_names)
     end
 
     # Overload to do any operations that need to be handled before work is called.
@@ -139,6 +148,8 @@ module Af
         puts "Log configuration files:"
         puts " " + @log_configuration_files.join("\n ")
         puts "Logging Names: #{Log4r::LNAMES.join(', ')}"
+        puts "Yaml section names:"
+        puts " " + @log_configuration_section_names.join("\n ")
         loggers = []
         Log4r::Logger.each do |logger_name, logger|
           loggers << logger_name
