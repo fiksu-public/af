@@ -13,9 +13,9 @@ log4r_config:
       - ERROR
       - FATAL
     global:
-      level: INFO
+      level: ALL
     root  :
-      level: INFO
+      level: ALL
 
   # define all loggers ...
   loggers:

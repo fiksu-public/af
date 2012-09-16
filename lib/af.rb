@@ -1,5 +1,6 @@
 require 'af/get_options'
 require 'af/command_liner'
+require 'af/log4r_configurator'
 require 'af/application'
 require 'af/q_thread/interface'
 require 'af/q_thread/base'

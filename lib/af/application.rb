@@ -8,13 +8,13 @@ require 'pg_application_name'
 module Af
   class Application < ::Af::CommandLiner
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
-      These are options associated with logging whose core is Log4r.  Current log levels are:
-       Log4r::#{Log4r::LNAMES.join(', Log4r::')}
+      These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
     DESCRIPTION
 
     opt :daemon, "run as daemon", :short => :d
-    opt :log_configuration, "file or directory for log4r configurator", :type => :string, :group => :logging
+    opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"], :group => :logging
+    opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."], :group => :logging
     opt :log_dump_configuration, "show the log4r configuration", :group => :logging
 
     attr_accessor :has_errors, :daemon
@@ -35,11 +35,11 @@ module Af
     def initialize
       super
       @@singleton = self
-
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
-      update_opts :log_configuration, :default => Rails.root + "/config/logging"
+      update_opts :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
+      update_opts :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
     end
 
     def set_connection_application_name(name)
@@ -105,11 +105,11 @@ module Af
     def post_command_line_parsing
     end
 
-    def logging_load_configuration_file(path)
+    def logging_load_configuration_files(*files)
       begin
-        Log4r::YamlConfigurator.load_yaml_file(path.to_s)
+        Af::Log4rConfigurator.load_yaml_files(*files)
       rescue StandardError => e
-        puts "error while parsing log_configuration_file: #{path}: #{e.message}"
+        puts "error while parsing log configuration files: #{e.message}"
         puts "continuing without your configuration"
         puts e.backtrace.join("\n")
         return false
@@ -117,35 +117,37 @@ module Af
       return true
     end
 
-    def logging_load_configuration(pathname, application_filename = "#{af_name}.yml", general_filename = "logging.yml")
-      path = Pathname.new(pathname)
-      if path.directory?
-        application_file_path = path + application_filename
-        if application_file_path.file?
-          return logging_load_configuration_file(application_file_path)
+    def logging_load_configuration
+      files = []
+      @log_configuration_files.each do |configuration_file|
+        @log_configuration_search_path.each do |path|
+          pathname = Pathname.new(path) + configuration_file
+          files << pathname.to_s if pathname.file?
         end
-        general_file_path = path + general_filename
-        if general_file_path.file?
-          return logging_load_configuration_file(general_file_path)
-        end
-      else
-        return logging_load_configuration_file(path)
       end
+      logging_load_configuration_files(*files)
     end
 
     # Overload to do any operations that need to be handled before work is called.
     # call exit if needed.  always call super
     def pre_work
-      # load log4r configuration files
-      logging_configured = false
-      if @log_configuration.present?
-        logging_configured = logging_load_configuration(@log_configuration)
-      end
+      logging_load_configuration
 
       if @log_dump_configuration
-        puts "logging_configured: #{logging_configured}"
-        Log4r::Logger.each_logger do |logger|
-          puts logger.inspect
+        puts "Log configuration search path:" 
+        puts " " + @log_configuration_search_path.join("\n ")
+        puts "Log configuration files:"
+        puts " " + @log_configuration_files.join("\n ")
+        puts "Logging Names: #{Log4r::LNAMES.join(', ')}"
+        loggers = []
+        Log4r::Logger.each do |logger_name, logger|
+          loggers << logger_name
+        end
+        puts "Loggers:"
+        puts "global: #{Log4r::LNAMES[Log4r::Logger.global.level]}"
+        puts "root: #{Log4r::LNAMES[Log4r::Logger.root.level]}"
+        loggers.sort.reject{|logger_name| ["root", "global"].include? logger_name}.each do |logger_name|
+          puts "#{' ' * logger_name.split('::').length}#{logger_name}: #{Log4r::LNAMES[Log4r::Logger[logger_name].level]} [#{Log4r::Logger[logger_name].outputters.map{|o| o.name}.join(', ')}]"
         end
         exit 0
       end
