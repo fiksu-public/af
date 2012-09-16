@@ -90,7 +90,7 @@ module Log4r
       # BTW, root is guaranteed to be defined by this point
       def self.define_methods(logger)
         undefine_methods(logger)
-        globlev = Repository['global'].level
+        globlev = Log4r::Logger['global'].level
         return if logger.level == OFF or globlev == OFF
         toggle_methods(globlev, logger)
       end

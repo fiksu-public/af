@@ -15,10 +15,8 @@ module Af
     opt :daemon, "run as daemon", :short => :d
     opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"], :group => :logging
     opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."], :group => :logging
-    opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config", "log4r_config_stdout"], :group => :logging
+    opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES', :group => :logging
     opt :log_dump_configuration, "show the log4r configuration", :group => :logging
-    opt :log_stdout, "log to stdout", :group => :logging
-    opt :log_file, "log to file", :group => :logging
 
     attr_accessor :has_errors, :daemon
 
@@ -106,12 +104,6 @@ module Af
     # Overload to do any any command line parsing
     # call exit if needed.  always call super
     def post_command_line_parsing
-      if @log_stdout
-        @log_configuration_section_names = ["log4r_config", "log4r_config_stdout"]
-      end
-      if @log_file
-        @log_configuration_section_names = ["log4r_config", "log4r_config_file"]
-      end
     end
 
     def logging_load_configuration_files(files, yaml_sections)
@@ -156,7 +148,7 @@ module Af
         end
         puts "Loggers:"
         puts "global: #{Log4r::LNAMES[Log4r::Logger.global.level]}"
-        puts "root: #{Log4r::LNAMES[Log4r::Logger.root.level]}"
+        puts "root: #{Log4r::LNAMES[Log4r::Logger['root'].level]} [#{Log4r::Logger['root'].outputters.map{|o| o.name}.join(', ')}]"
         loggers.sort.reject{|logger_name| ["root", "global"].include? logger_name}.each do |logger_name|
           puts "#{' ' * logger_name.split('::').length}#{logger_name}: #{Log4r::LNAMES[Log4r::Logger[logger_name].level]} [#{Log4r::Logger[logger_name].outputters.map{|o| o.name}.join(', ')}]"
         end
