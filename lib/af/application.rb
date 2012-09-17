@@ -4,6 +4,7 @@ require 'log4r/yamlconfigurator'
 require 'log4r_remote_syslog_outputter'
 require 'pg_advisory_locker'
 require 'pg_application_name'
+require 'reasonable_log4r'
 
 module Af
   class Application < ::Af::CommandLiner
