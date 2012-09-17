@@ -12,7 +12,6 @@ Gem::Specification.new do |s|
  s.description = "Af groups together gems and provides some glue and helper classes to easily creating applications in a ruby on rails environment."
  s.authors     = ["Keith Gabryelski"]
  s.email       = 'keith@fiksu.com'
- s.executables = `git ls-files -- bin/*`.split("\n").map{|f| File.basename(f)}
  s.files       = `git ls-files`.split("\n")
  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
  s.require_path = 'lib'
@@ -21,6 +20,7 @@ Gem::Specification.new do |s|
  s.add_dependency 'pg_advisory_locker', '>= 0.9.0'
  s.add_dependency 'log4r', '1.1.10'
  s.add_dependency "log4r_remote_syslog_outputter", "0.0.1"
+ s.add_dependency 'reasonable_log4r', '>= 0.9.0'
  s.add_dependency 'uuid', '2.3.4'
  s.add_dependency "rails", '>= 3.0.0'
  s.add_dependency 'rspec-rails', '2.8.1'

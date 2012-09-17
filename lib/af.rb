@@ -1,6 +1,5 @@
 require 'af/get_options'
 require 'af/command_liner'
-require 'af/monkey_patch_log4r'
 require 'af/application'
 require 'af/q_thread/interface'
 require 'af/q_thread/base'
