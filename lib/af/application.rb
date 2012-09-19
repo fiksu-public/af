@@ -88,7 +88,11 @@ module Af
     end
 
     def _work
-      work
+      begin
+        work
+      rescue Exception => e
+        logger.fatal e
+      end
 
       exit @has_errors ? 1 : 0
     end
