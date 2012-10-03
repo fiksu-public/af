@@ -93,7 +93,9 @@ module Af
       begin
         work
       rescue Exception => e
+        logger.error "fatal error durring work"
         logger.fatal e
+        @has_errors = true
       end
 
       exit @has_errors ? 1 : 0
