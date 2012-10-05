@@ -230,6 +230,14 @@ module Af
       }
     end
 
+    def protect_from_signals
+      # we are indiscriminate with the signals we block -- too bad ruby doesn't have some
+      # reasonable signal management system
+      signals = Hash[Signal.list.keys.map {|signal| [signal, Signal.trap(signal, "IGNORE")] }]
+      yield
+      signals.each {|signal, saved_value| Signal.trap(signal, saved_value)}
+    end
+
     module Proxy
       def af_logger(logger_name = (af_name || "Unknown"))
         return ::Af::Application.singleton.logger(logger_name)
