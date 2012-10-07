@@ -230,12 +230,19 @@ module Af
       }
     end
 
+    def signal_list
+      return Signal.list.keys
+    end
+
     def protect_from_signals
       # we are indiscriminate with the signals we block -- too bad ruby doesn't have some
       # reasonable signal management system
-      signals = Hash[Signal.list.keys.map {|signal| [signal, Signal.trap(signal, "IGNORE")] }]
-      yield
-      signals.each {|signal, saved_value| Signal.trap(signal, saved_value)}
+      signals = Hash[signal_list.map {|signal| [signal, Signal.trap(signal, "IGNORE")] }]
+      begin
+        yield
+      ensure
+        signals.each {|signal, saved_value| Signal.trap(signal, saved_value)}
+      end
     end
 
     module Proxy
