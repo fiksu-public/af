@@ -92,7 +92,10 @@ module Af
     def _work
       begin
         work
+      rescue SystemExit
+        # we do nothing here
       rescue Exception => e
+        # catching Exception cause some programs and libraries suck
         logger.error "fatal error durring work"
         logger.fatal e
         @has_errors = true
