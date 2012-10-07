@@ -20,6 +20,8 @@ module Af
     opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES', :group => :logging
     opt :log_dump_configuration, "show the log4r configuration", :group => :logging
     opt :log_levels, "set log levels", :type => :hash, :group => :logging
+    opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string, :group => :logging
+    opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string, :group => :logging
 
     attr_accessor :has_errors, :daemon
 
@@ -44,6 +46,8 @@ module Af
       $stderr.sync = true
       update_opts :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
       update_opts :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
+      update_opts :log_stdout, :default => Rails.root + "log/runner.log"
+      update_opts :log_stderr, :default => Rails.root + "log/runner-errors.log"
     end
 
     def set_connection_application_name(name)
@@ -181,6 +185,10 @@ module Af
       end
 
       if @daemon
+        $stdout.reopen(@log_stdout, "a")
+        $stderr.reopen(@log_stderr, "a")
+        $stdout.sync = true
+        $stderr.sync = true
         logger.info "Daemonizing"
         pid = fork
         if pid
