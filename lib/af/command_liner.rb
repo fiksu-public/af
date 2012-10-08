@@ -1,21 +1,37 @@
 module Af
+
+  # Utility base class for executing Ruby scripts on the command line. Provides
+  # methods to define, gather, parse and cast command line options. Options are
+  # stored as class instance variables.
+  #
+  # TODO AK: Ideally, the instance and class methods should be grouped together,
+  # thus providing a more readable class interface.
   class CommandLiner
+
+    # Returns the current version of the application.
+    # *Must be overridden in a subclass.*
     def application_version
       return "#{self.name}: unknown application version"
     end
 
+    # Returns a string detailing application usage.
     def usage
       return @usage
     end
 
+    # Prints to stdout application usage and all command line options.
+    #
+    # TODO AK: This method is long and should be refactored.
     def help(command_line_usage, show_hidden = false)
+
+      # Print usage.
       puts(command_line_usage)
-      # group commands
 
+      # Fetch all command line options stores (grouped and not).
       grouped_commands = all_command_line_option_groups_stores
-
       commands = all_command_line_options_stores
 
+      # Add non-grouped options to grouped as "basic".
       commands.each do |long_switch,configuration|
         group_name = (configuration[:group] || :basic)
         grouped_commands[group_name] ||= {}
@@ -23,7 +39,10 @@ module Af
         grouped_commands[group_name][:commands] << long_switch
       end
 
+      # Array of strings to be printed to stdout.
       output = []
+
+      # Iterate through all command groups  sorted by priority.
       grouped_commands.keys.sort{|a,b| (grouped_commands[a][:priority] || 50) <=> (grouped_commands[b][:priority] || 50)}.each do |group_name|
         grouped_command = grouped_commands[group_name]
 
@@ -35,6 +54,8 @@ module Af
             output << " " + (grouped_command[:description] || "").chomp.split("\n").map(&:strip).join("\n ")
 
             rows = []
+
+            # Iterate trhough all commands in this group.
             grouped_command[:commands].sort.each do |long_switch|
               parameters = commands[long_switch]
               if parameters[:hidden] == true && show_hidden == false
@@ -83,18 +104,25 @@ module Af
       puts output.join("\n")
     end
 
+    # Return the store of command line options for just this class.
     def command_line_options_store
       return self.class.command_line_options_store
     end
 
+    # Update options for the provided long switch option name.
+    #  *Args*
+    #   * long_name - string name of switch
+    #   * updates - hash of chnages to option configuration
     def update_opts(long_name, updates)
       long_name = long_name.to_s
+      # Convert prefix underscores to dashes.
       unless long_name[0..1] == "--"
-        long_name = "--#{long_name.gsub(/_/,'-')}" 
+        long_name = "--#{long_name.gsub(/_/,'-')}"
       end
       (all_command_line_options_stores[long_name] || {}).merge!(updates)
     end
 
+    # Returns the 
     def all_command_line_options_stores
       unless @all_command_line_options_stores
         @all_command_line_options_stores ||= {}
@@ -108,6 +136,7 @@ module Af
       return @all_command_line_options_stores
     end
 
+    # TODO AK: This method is long and should be refactored.
     def command_line_options(options = {}, usage = nil)
       if usage.nil?
         @usage = "rails runner #{self.class.name}.run [OPTIONS]"
@@ -209,6 +238,7 @@ module Af
       command_line_option_groups_store[group_name].merge!({:group => opt_name})
     end
 
+    # TODO AK: This method is long and should be refactored.
     def self.opt(long_name = nil, *extra_stuff, &b)
       if b && long_name.nil?
         yield
