@@ -1,5 +1,4 @@
-Af - an application framework
-=============================
+# Af - an application framework
 
 This application framework supports:
 
@@ -10,8 +9,7 @@ This application framework supports:
 * postgres database connection updates via pg_application_name gem
 * threads and message passing
 
-Application class
-=================
+## Application class
 
 The class ::Af::Application provides a basic interface to the start-up
 and management of Ruby on Rails scripts.
@@ -19,14 +17,16 @@ and management of Ruby on Rails scripts.
 A simple example of an application which logs its startup and exits
 is:
 
-    class MyApplication < ::Af::Application
-      opt :word, "the word", :short => :w, :default => "bird"
+<code>
+  class MyApplication < ::Af::Application
+    opt :word, "the word", :short => :w, :default => "bird"
 
-      def work
-	logger.info "Started up: #{@word} is the word"
-        exit 0
-      end
-    end 
+    def work
+      logger.info "Started up: #{@word} is the word"
+      exit 0
+    end
+  end
+</code>
 
 Class-method "opt" specifies command line parameter(s) whose arguments
 are stored in instance variables.  MyApplication specifies a single
@@ -44,17 +44,17 @@ in the logging section below.
 
 This application would be run from the command line as:
 
-    $ script/rails runner MyApplication.run --word grease
+<code>
+  $ script/rails runner MyApplication.run --word grease
+</code>
 
 The class method #run provides start-up glue for applications, parsing
 command line options, environment variables and configuration files.
 The instance method #work is where application codes start their work.
 
-Command Line Options
-====================
+## Command Line Options
 
-Logging with Log4r
-==================
+## Logging with Log4r
 
 Some changes to Log4r:
 
