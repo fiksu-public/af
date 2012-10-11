@@ -8,7 +8,28 @@ require 'pg_application_name'
 require 'reasonable_log4r'
 
 module Af
+
+  # Abstract superclass for implementing command line applications.
+  #
+  # Provides:
+  #   * Command line option parsing.
+  #   * Logging with Log4r.
+  #   * Pre and post option processes hooks.
+  #   * ???
+  #
+  # Subclasses must implement:
+  #   * work
+  #   * ??
+  #
+  # Subclasses can implement:
+  #   * pre_work
+  #   * post_command_line_parsing
+  #   * option_handler
+  #   * ??
+  #
   class Application < ::Af::CommandLiner
+
+    # Default set of option groups and options.
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
@@ -27,6 +48,10 @@ module Af
 
     @@singleton = nil
 
+    # Return the single allowable instance of this class.
+    #
+    # *Arguments*
+    #   * safe - defaults to false, instantiates instance if it doesn't exist
     def self.singleton(safe = false)
       if @@singleton.nil?
         if safe
@@ -38,6 +63,8 @@ module Af
       return @@singleton
     end
 
+    # TODO AK: What happens if this is called multiple times? It's not guarenteed
+    # to only return the singleton object, right?
     def initialize
       super
       @@singleton = self
@@ -50,36 +77,74 @@ module Af
       update_opts :log_stderr, :default => Rails.root + "log/runner-errors.log"
     end
 
+    # Set the application name on the ActiveRecord connection. It is
+    # truncated to 64 characters.
+    #
+    # *Arguments*
+    #   * name - application name to set on the connection
     def set_connection_application_name(name)
       ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(name[0...63])
     end
 
+    # Application name consisting of process PID and af name.
     def startup_database_application_name
       return "//pid=#{Process.pid}/#{af_name}"
     end
 
+    # Accessor for the application name set on the ActiveRecord database connection.
     def database_application_name
       return self.class.startup_database_application_name
     end
 
+    # Accessor for the af name set on the instance's class.
+    #
+    # TODO AK: Where is "name" set? Does the subclass need to implement it?
     def af_name
       return self.class.name
     end
 
+    # Returns the logger with the provided name, instantiating it if needed.
+    #
+    # *Arguments*
+    #   * logger_name - logger to return, defaults to ":default"
     def logger(logger_name = :default)
-      # Coerce the logger_name if needed
+      # Coerce the logger_name if needed.
       logger_name = af_name if logger_name == :default
-      # Check with Log4r to see if there is a logger by this name
-      # If Log4r doesn't have a logger by this name, make one with Af defaults
+      # Check with Log4r to see if there is a logger by this name.
+      # If Log4r doesn't have a logger by this name, make one with Af defaults.
       return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
     end
 
+    # Run this application with the provided arguments that must adhere to
+    # configured command line switches.  It rewrites ARGV with these values.
+    #
+    # *Example*
+    #   instance._run("-v", "--file", "foo.log")
+    #
+    # *Arguments*
+    #   * arguments - list of command line option strings
+    #
+    # TODO AK: I still don't love that we have to rewrite ARGV to call
+    # applications within Ruby.  I would prefer it if passing a hash of
+    # arguments prevented the use of Getoptlong and the args hash was
+    # processed according to the configred switches.
+    # TODO AK: Can we rename this to "run_with_arguments"?
     def self._run(*arguments)
       # this ARGV hack is here for test specs to add script arguments
       ARGV[0..-1] = arguments if arguments.length > 0
       self.new._run
     end
 
+    # Run the application, fetching and parsing options from the command
+    # line.
+    #
+    # *Arguments*
+    #   * usage - string describing usage (optional)
+    #   * options - hash of options, containing ???
+    #
+    # TODO AK: Instead of prefixing this with an underscore, can't it just
+    # be protected? I assume the underscore indicates that it's not part of
+    # the public interface?
     def _run(usage = nil, options = {})
       @options = options
       @usage = usage || "rails runner #{self.class.name}.run [OPTIONS]"
@@ -93,8 +158,14 @@ module Af
       return self
     end
 
+    # Execute the actual work of the application upon execution.
+    #
+    # TODO AK: Can we make this protected and remove the underscore?
     def _work
       begin
+        # TODO AK: "work" isn't defined as method, but must be implemented
+        # in subclasses, correct?  Maybe we should create a method stub that
+        # throws a NotImplemented exception?
         work
       rescue SystemExit
         # we do nothing here
@@ -103,25 +174,39 @@ module Af
         logger.error "fatal error durring work"
         logger.fatal e
         @has_errors = true
+        # TODO AK: Can't we just re-raise e and put the call to "exit" in
+        # an "ensure" block? Or does that not make a difference?
       end
 
       exit @has_errors ? 1 : 0
     end
 
+    # Instantiate and run the application.
+    #
+    # *Arguments*
+    #   - arguments - ????
     def self.run(*arguments)
       application = self.new._run(*arguments)
       application._work
     end
 
     protected
+
+    # TODO AK: Is this like a method missing for option parsing?  Some
+    # comments describing it's purpose would be helpful.
     def option_handler(option, argument)
     end
 
-    # Overload to do any any command line parsing
-    # call exit if needed.  always call super
+    # Overload to do any command line parsing.
+    # Call exit if needed.  Always call super.
     def post_command_line_parsing
     end
 
+    # Load the provided yaml Log4r configuration files.
+    #
+    # *Arguments*
+    #   * files - array of file names with full paths (??)
+    #   * yaml_sections - ???
     def logging_load_configuration_files(files, yaml_sections)
       begin
         Log4r::YamlConfigurator.load_yaml_files(files, yaml_sections)
@@ -134,6 +219,9 @@ module Af
       return true
     end
 
+    # Load all of the Log4r yaml configuration files.
+    # TODO AK: Where is "@log_configuration_files" and
+    # "@log_configuration_search_path" set?
     def logging_load_configuration
       files = []
       @log_configuration_files.each do |configuration_file|
@@ -145,12 +233,13 @@ module Af
       logging_load_configuration_files(files, @log_configuration_section_names)
     end
 
+    # TODO AK: What is purpose of this method?
     def logging_configuration_looks_bogus
       return Log4r::LNAMES.length == 1
     end
 
     # Overload to do any operations that need to be handled before work is called.
-    # call exit if needed.  always call super
+    # Call exit if needed. Always call super.
     def pre_work
       logging_load_configuration
 
@@ -158,7 +247,7 @@ module Af
         Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
         Log4r::Logger.root.outputters << Log4r::Outputter.stdout
       end
-      
+
       if @log_levels
         set_logger_levels(log_levels)
       end
@@ -206,6 +295,16 @@ module Af
       ActiveRecord::Base.connection.reconnect!
     end
 
+    # Parse and return the provided log level, which can be an integer,
+    # string integer or string constant.  Returns all loging levels if value
+    # cannot be parsed.
+    #
+    # *Arguments*
+    #   * logger_level - log level to be parsed
+    #
+    # TODO AK: Declaring a class method with "self.method_name" after declaring
+    # "protected" doesn't change the method's visibility.  If has to be defined
+    # using "class << self".
     def self.parse_log_level(logger_level)
       if logger_level.is_a? Integer
         logger_level_value = logger_level
@@ -222,17 +321,23 @@ module Af
       return logger_level_value
     end
 
+    # Parses and sets the provided logger levels.
+    #
+    # *Argument*
+    #   * logger_info - value indicating default log level, or JSON string
+    #     of logger names to logger levels, i.e. "{'foo' => 'INFO'}.
     def parse_and_set_logger_levels(logger_info)
       log_level_hash = JSON.parse(logger_info) rescue {:default => self.class.parse_log_level(logger_info)}
       set_logger_levels(log_level_hash)
     end
 
+    # Sets the logger levels the provided hash.  It supports the following formats for
+    # logger levels: 1, "1", "INFO", "Log4r::INFO".
+    #
+    # *Arguments*
+    #   * log_level_hash - hash of logger names to logger levels,
+    #     i.e. { :foo => 'INFO' }
     def set_logger_levels(log_level_hash)
-      # we need to handle the follow cases:
-      #  "x" => 1
-      #  "x" => "1"
-      #  "x" => "INFO"
-      #  "x" => "Log4r::INFO"
       log_level_hash.map { |logger_name, logger_level|
         logger_name = :default if logger_name == "default"
         logger_level_value = self.class.parse_log_level(logger_level)
@@ -241,10 +346,12 @@ module Af
       }
     end
 
+    # Returns a list of OS signals.
     def signal_list
       return Signal.list.keys
     end
 
+    # TODO AK: Where is this called?  Is it just a utility method?
     def protect_from_signals
       # we are indiscriminate with the signals we block -- too bad ruby doesn't have some
       # reasonable signal management system
@@ -255,6 +362,9 @@ module Af
         signals.each {|signal, saved_value| Signal.trap(signal, saved_value)}
       end
     end
+
+    # TODO AK: I'm not sure I totally understand how these proxies function. Can
+    # you please explain?
 
     module Proxy
       def af_logger(logger_name = (af_name || "Unknown"))
@@ -275,5 +385,6 @@ module Af
         return ::Af::Application.singleton(true).af_name
       end
     end
+
   end
 end

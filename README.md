@@ -54,6 +54,8 @@ The instance method #work is where application codes start their work.
 
 ## Command Line Options
 
+*TODO*
+
 ## Logging with Log4r
 
 Some changes to Log4r:
@@ -65,3 +67,11 @@ Some changes to Log4r:
 
 What this really means is that you can set up one outputter in the root
 logger to manage the default logging behavior.
+
+## Thread Pool
+
+*TODO*
+
+## TCP Message Passing
+
+*TODO*

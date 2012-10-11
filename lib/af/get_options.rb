@@ -3,8 +3,11 @@ require 'getoptlong'
 module Af
 
   # Subclasses Getoptlong from the Ruby standard library.
-  # See: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/getoptlong/rdoc/GetoptLong.html.
+  # Docs: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/getoptlong/rdoc/GetoptLong.html.
+  # Source: https://github.com/ruby/ruby/blob/trunk/lib/getoptlong.rb.
   class GetOptions < GetoptLong
+
+    # Local constants which map to superclass argument types.
     ARGUMENT_FLAGS = [
       NO_ARGUMENT = GetoptLong::NO_ARGUMENT,
       REQUIRED_ARGUMENT = GetoptLong::REQUIRED_ARGUMENT,
@@ -14,13 +17,12 @@ module Af
     # Instantiate a new long command line option parser with a hash of switches.
     #
     # *Arguments*
-    #   * switches - optional hash of command line switches in the form of:
-    #       { <long switch> => {
-    #         :short => <optional short switch>,
-    #         :argument => <constant arg type>,
-    #         :environment_variable => How do these work???
+    #   * switches - optional hash of command line switches, with long switch as
+    #       key to a set of options:
+    #         :short => <optional short switch>
+    #         :argument => <constant arg type>
+    #         :environment_variable => <how do these work???>
     #         :note => <arg description>
-    #       }
     def initialize(switches = {})
       # TODO AK: I think these can all just be local variables.
       # TODO AK: This isn't used, can it be removed?
@@ -65,5 +67,6 @@ module Af
 
       super(*@getopt_options)
     end
+
   end
 end
