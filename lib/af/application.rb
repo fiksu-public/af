@@ -35,6 +35,11 @@ module Af
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
     DESCRIPTION
 
+    opt_group :debugging, "debugging options", :priority => 1000, :hidden => true, :description => <<-DESCRIPTION
+      These are options associated with debugging the internal workings of the Af::Application sysyem and ruby
+      in general.
+    DESCRIPTION
+
     opt :daemon, "run as daemon", :short => :d
     opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"], :group => :logging
     opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."], :group => :logging
@@ -43,6 +48,8 @@ module Af
     opt :log_levels, "set log levels", :type => :hash, :group => :logging
     opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string, :group => :logging
     opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string, :group => :logging
+    opt :gc_profiler, "enable the gc profiler", :group => :debugging
+    opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
 
     attr_accessor :has_errors, :daemon
 
@@ -171,11 +178,15 @@ module Af
         # we do nothing here
       rescue Exception => e
         # catching Exception cause some programs and libraries suck
-        logger.error "fatal error durring work"
+        logger.error "fatal error durring work: #{e.message}"
         logger.fatal e
         @has_errors = true
         # TODO AK: Can't we just re-raise e and put the call to "exit" in
         # an "ensure" block? Or does that not make a difference?
+      end
+
+      if @gc_profiler
+        logger("GC::Profiler").info GC::Profiler.result
       end
 
       exit @has_errors ? 1 : 0
@@ -273,6 +284,17 @@ module Af
         exit 0
       end
 
+      if @gc_profiler
+        logger("GC::Profiler").info "Enabling GC:Profilier"
+        logger("GC::Profiler").info "Signal USR1 will dump results"
+        logger("GC::Profiler").info "Will dump every #{@gc_profiler_interval_minutes} minutes"
+        GC::Profiler.enable
+        @last_gc_profiler_dump = Time.zone.now
+        Signal.trap("USR1") do
+          logger("GC::Profiler").info GC::Profiler.result
+        end
+      end
+
       if @daemon
         $stdout.reopen(@log_stdout, "a")
         $stderr.reopen(@log_stderr, "a")
@@ -360,6 +382,16 @@ module Af
         yield
       ensure
         signals.each {|signal, saved_value| Signal.trap(signal, saved_value)}
+      end
+    end
+
+    # call this every once in a while
+    def periodic_application_checkpoint
+      if @gc_profiler
+        if (Time.zone.now - @last_gc_profiler_dump) > @gc_profiler_interval_minutes.minutes
+          @last_gc_profiler_dump = Time.zone.now
+          logger("GC::Profiler").info GC::Profiler.result
+        end
       end
     end
 
