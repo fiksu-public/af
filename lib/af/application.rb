@@ -196,9 +196,9 @@ module Af
       end
 
       if @gc_profiler
-        logger("GC::Profiler").detail "Enabling GC:Profilier"
-        logger("GC::Profiler").detail "Signal USR1 will dump results"
-        logger("GC::Profiler").detail "Will dump every #{@gc_profiler_interval_minutes} minutes"
+        logger("GC::Profiler").info "Enabling GC:Profilier"
+        logger("GC::Profiler").info "Signal USR1 will dump results"
+        logger("GC::Profiler").info "Will dump every #{@gc_profiler_interval_minutes} minutes"
         GC::Profiler.enable
         @last_gc_profiler_dump = Time.zone.now
         Signal.trap("USR1") do
