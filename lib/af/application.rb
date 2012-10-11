@@ -112,6 +112,10 @@ module Af
         @has_errors = true
       end
 
+      if @gc_profiler
+        logger("GC::Profiler").info GC::Profiler.result
+      end
+
       exit @has_errors ? 1 : 0
     end
 
@@ -159,17 +163,6 @@ module Af
     # Overload to do any operations that need to be handled before work is called.
     # call exit if needed.  always call super
     def pre_work
-      if @gc_profiler
-        logger("GC::Profiler").detail "Enabling GC:Profilier"
-        logger("GC::Profiler").detail "Signal USR1 will dump results"
-        logger("GC::Profiler").detail "Will dump every #{@gc_profiler_interval_minutes} minutes"
-        GC::Profiler.enable
-        @last_gc_profiler_dump = Time.zone.now
-        Signal.trap("USR1") do
-          logger("GC::Profiler").info GC::Profiler.result
-        end
-      end
-
       logging_load_configuration
 
       if logging_configuration_looks_bogus
@@ -200,6 +193,17 @@ module Af
           puts "#{' ' * logger_name.split('::').length}#{logger_name}: #{Log4r::LNAMES[Log4r::Logger[logger_name].level]} [#{Log4r::Logger[logger_name].outputters.map{|o| o.name}.join(', ')}]"
         end
         exit 0
+      end
+
+      if @gc_profiler
+        logger("GC::Profiler").detail "Enabling GC:Profilier"
+        logger("GC::Profiler").detail "Signal USR1 will dump results"
+        logger("GC::Profiler").detail "Will dump every #{@gc_profiler_interval_minutes} minutes"
+        GC::Profiler.enable
+        @last_gc_profiler_dump = Time.zone.now
+        Signal.trap("USR1") do
+          logger("GC::Profiler").info GC::Profiler.result
+        end
       end
 
       if @daemon
