@@ -281,7 +281,7 @@ module Af
     # call this every once in a while
     def periodic_application_checkpoint
       if @gc_profiler
-        if (Time.zone.now - @last_gc_profiler_dump) > @gc_profiler_interval_minutes.minues
+        if (Time.zone.now - @last_gc_profiler_dump) > @gc_profiler_interval_minutes.minutes
           @last_gc_profiler_dump = Time.zone.now
           logger("GC::Profiler").info GC::Profiler.result
         end
