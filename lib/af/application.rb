@@ -14,6 +14,11 @@ module Af
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
     DESCRIPTION
 
+    opt_group :debugging, "debugging options", :priority => 1000, :hidden => true, :description => <<-DESCRIPTION
+      These are options associated with debugging the internal workings of the Af::Application sysyem and ruby
+      in general.
+    DESCRIPTION
+
     opt :daemon, "run as daemon", :short => :d
     opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"], :group => :logging
     opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."], :group => :logging
@@ -22,6 +27,8 @@ module Af
     opt :log_levels, "set log levels", :type => :hash, :group => :logging
     opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string, :group => :logging
     opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string, :group => :logging
+    opt :gc_profiler, "enable the gc profiler", :group => :debugging
+    opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
 
     attr_accessor :has_errors, :daemon
 
@@ -152,6 +159,17 @@ module Af
     # Overload to do any operations that need to be handled before work is called.
     # call exit if needed.  always call super
     def pre_work
+      if @gc_profiler
+        logger("GC::Profiler").detail "Enabling GC:Profilier"
+        logger("GC::Profiler").detail "Signal USR1 will dump results"
+        logger("GC::Profiler").detail "Will dump every #{@gc_profiler_interval_minutes} minutes"
+        GC::Profiler.enable
+        @last_gc_profiler_dump = Time.zone.now
+        Signal.trap("USR1") do
+          logger("GC::Profiler").info GC::Profiler.result
+        end
+      end
+
       logging_load_configuration
 
       if logging_configuration_looks_bogus
@@ -253,6 +271,16 @@ module Af
         yield
       ensure
         signals.each {|signal, saved_value| Signal.trap(signal, saved_value)}
+      end
+    end
+
+    # call this every once in a while
+    def periodic_application_checkpoint
+      if @gc_profiler
+        if (Time.zone.now - @last_gc_profiler_dump) > @gc_profiler_interval_minutes.minues
+          @last_gc_profiler_dump = Time.zone.now
+          logger("GC::Profiler").info GC::Profiler.result
+        end
       end
     end
 
