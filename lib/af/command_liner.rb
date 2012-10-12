@@ -1,21 +1,32 @@
 module Af
+
+  # Utility base class for executing Ruby scripts on the command line. Provides
+  # methods to define, gather, parse and cast command line options. Options are
+  # stored as class instance variables.
   class CommandLiner
+
+    # Returns the current version of the application.
+    # *Must be overridden in a subclass.*
     def application_version
       return "#{self.name}: unknown application version"
     end
 
+    # Returns a string detailing application usage.
     def usage
       return @usage
     end
 
+    # Prints to stdout application usage and all command line options.
     def help(command_line_usage, show_hidden = false)
+
+      # Print usage.
       puts(command_line_usage)
-      # group commands
 
+      # Fetch all command line options stores (grouped and not).
       grouped_commands = all_command_line_option_groups_stores
-
       commands = all_command_line_options_stores
 
+      # Add non-grouped options to grouped as "basic".
       commands.each do |long_switch,configuration|
         group_name = (configuration[:group] || :basic)
         grouped_commands[group_name] ||= {}
@@ -23,7 +34,10 @@ module Af
         grouped_commands[group_name][:commands] << long_switch
       end
 
+      # Array of strings to be printed to stdout.
       output = []
+
+      # Iterate through all command groups  sorted by priority.
       grouped_commands.keys.sort{|a,b| (grouped_commands[a][:priority] || 50) <=> (grouped_commands[b][:priority] || 50)}.each do |group_name|
         grouped_command = grouped_commands[group_name]
 
@@ -35,6 +49,8 @@ module Af
             output << " " + (grouped_command[:description] || "").chomp.split("\n").map(&:strip).join("\n ")
 
             rows = []
+
+            # Iterate trhough all commands in this group.
             grouped_command[:commands].sort.each do |long_switch|
               parameters = commands[long_switch]
               if parameters[:hidden] == true && show_hidden == false
@@ -83,18 +99,26 @@ module Af
       puts output.join("\n")
     end
 
+    # Return the store of command line options for just this class.
     def command_line_options_store
       return self.class.command_line_options_store
     end
 
+    # Update options for the provided long switch option name.
+    #  *Arguments*
+    #   * long_name - string name of switch
+    #   * updates - hash of chnages to option configuration
     def update_opts(long_name, updates)
       long_name = long_name.to_s
+      # Convert prefix underscores to dashes.
       unless long_name[0..1] == "--"
-        long_name = "--#{long_name.gsub(/_/,'-')}" 
+        long_name = "--#{long_name.gsub(/_/,'-')}"
       end
       (all_command_line_options_stores[long_name] || {}).merge!(updates)
     end
 
+    # Returns the union of all command line option stores in the class heirarchy.
+    # The result is cached and returned for future calls.
     def all_command_line_options_stores
       unless @all_command_line_options_stores
         @all_command_line_options_stores ||= {}
@@ -108,12 +132,23 @@ module Af
       return @all_command_line_options_stores
     end
 
+
+    # Collect and process all of the switches (values) on the command
+    # line, as previously configured.
+    #
+    # TODO AK: As far as I can tell, the "options" hash argument is never
+    # used.  Perhaps it can be removed?
     def command_line_options(options = {}, usage = nil)
+
+      # Set usage if provided, otherwise set to default.
       if usage.nil?
         @usage = "rails runner #{self.class.name}.run [OPTIONS]"
       else
         @usage = usage
       end
+
+      # Iterate through all options in the class heirachy.
+      # Create instance variables and accessor methods for each.
       all_command_line_options_stores.each do |long_name,options|
         unless options[:var]
           var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
@@ -128,7 +163,12 @@ module Af
           end
         end
       end
+
+      # Fetch the actual switches (and values) from the command line.
       get_options = ::Af::GetOptions.new(all_command_line_options_stores)
+
+      # Iterate through the command line options. Print and exit if the switch
+      # is invalid, help or app version.  Otherwise, process and handle.
       get_options.each do |option,argument|
         if option == '--?'
           help(usage)
@@ -146,11 +186,13 @@ module Af
             help(usage)
             exit 0
           elsif command_line_option.is_a?(Hash)
+            # Try to determine argument type and cast it.
             argument = command_line_option[:set] || argument
             type_name = self.class.ruby_value_to_type_name(command_line_option[:set])
             type_name = command_line_option[:type] unless command_line_option[:type].blank?
             type_name = :string if type_name.nil? && command_line_option[:method].nil?
             argument_value = self.class.evaluate_argument_for_type(argument, type_name, option, command_line_option)
+            # Argument converted, so call with proc and/or assign to instance variable.
             if command_line_option[:method]
               argument_value = command_line_option[:method].call(option, argument_value)
             end
@@ -158,16 +200,22 @@ module Af
               self.instance_variable_set("@#{command_line_option[:var]}".to_sym, argument_value)
             end
           end
+          # TODO AK: This seems to only be declared in the subclass Application,
+          # which seems super dangerous.  Maybe there should at least be an empty
+          # emthod declaration in this class that raises a NotImplementedError?
           option_handler(option, argument)
         end
       end
     end
 
+    # Return the command line options store for just this class.
     def self.command_line_options_store
       @command_line_options_store ||= {}
       return @command_line_options_store
     end
 
+    # Returns the union of all grouped command line option stores in the class
+    # heirarchy. The result is cached and returned for future calls.
     def all_command_line_option_groups_stores
       unless @all_command_line_option_groups_stores
         @all_command_line_option_groups_stores ||= {}
@@ -181,11 +229,18 @@ module Af
       return @all_command_line_option_groups_stores
     end
 
+    # Return the command line options groups store for just this class.
     def self.command_line_option_groups_store
       @command_line_option_groups_store ||= {}
       return @command_line_option_groups_store
     end
 
+    # Declare a command line options group.
+    #
+    # *Arguments*
+    #   * group_name - name of the group
+    #   * group_title - title of the group (optional)
+    #
     def self.opt_group(group_name, *extra_stuff)
       command_line_option_groups_store[group_name] ||= {}
 
@@ -198,9 +253,11 @@ module Af
 
       maybe_hash = extra_stuff[-1]
       if maybe_hash.is_a? Hash
+        # TODO AK: What are other possible values in "maybe_hash" below?
         command_line_option_groups_store[group_name].merge!(maybe_hash)
       end
 
+      # TODO AK: What are the obvious errors?
       # ignoring obvious errors
     end
 
@@ -209,23 +266,47 @@ module Af
       command_line_option_groups_store[group_name].merge!({:group => opt_name})
     end
 
+    # Declare a command line option switch.
+    #
+    # *Arguments*
+    #   * long_name - long version of the switch
+    #   * extra_stuff - hash with the following possible keys:
+    #     :var => <instance variable name>
+    #     :default => <default value>
+    #     :no_accessor => <false to skip setting accessor>
+    #     :set => <???>
+    #     :type => <type to cast option value??>
+    #     :method => <lambda or proc to process value??>
+    #     :hidden => <???>
+    #     :group => <name of group?>
+    #     :priority => <integer??>
+    #     :argument => <arg type: required, none, optional>
+    #     :choices => <???>
+    #     :environment_variable => <???>
+    #     :argument_note => <???>
     def self.opt(long_name = nil, *extra_stuff, &b)
+
+      # TODO AK: What does yielding to block here accomplish?
       if b && long_name.nil?
         yield
         return
       end
 
       if long_name.nil?
+        # TODO AK: This should probably be an ArgumentError exception.
         raise "::Af::CommandLiner: no name given for option"
       end
 
+      # Create hash for processed options.
       extras = extra_stuff[-1]
       if extras.is_a? Hash
+        # TODO AK: Why remove the last argument?  What does it contain?
         extra_stuff.pop
       else
         extras = {}
       end
 
+      # Iterate through and process all of the other arguments.
       while extra_stuff.length > 0
         extra = extra_stuff.shift
         if extra.is_a?(Symbol)
@@ -234,27 +315,33 @@ module Af
           elsif [:int, :float, :string, :uri, :date, :time, :choice, :hash, :ints, :floats, :strings, :uris, :dates, :times, :choices].include?(extra)
             extras[:type] = extra
           else
+            # TODO AK: This should probably be an ArgumentError exception.
             raise "#{long_name}: i don't know what to do with ':#{extra}' on this option"
           end
         elsif extra.is_a?(String)
           extras[:note] = extra
         else
+          # TODO AK: This should probably be an ArgumentError exception.
           raise "#{long_name}: i don't know what to do with '#{extra}' on this option"
         end
       end
 
+      # Ensure long name is in the proper string format.
       long_name = long_name.to_s
       unless long_name[0..1] == "--"
         long_name = "--#{long_name.gsub(/_/,'-')}" 
       end
+
       unless extras[:type]
-        # if we are not just setting a switch, then we can use the default value
-        # and assume this switch has a required argument
+        # If we are not just setting a switch, then we can use the default value
+        # and assume this switch has a required argument.
         if extras[:default].present? && extras[:set].nil?
           type = ruby_value_to_type_name(extras[:default])
           extras[:type] = type unless type.nil?
         end
       end
+
+      # Determine argument type.
       argument = if extras[:argument] == :required
                    ::Af::GetOptions::REQUIRED_ARGUMENT
                  elsif extras[:argument] == :none
@@ -270,12 +357,15 @@ module Af
                  else
                    extras[:argument]
                  end
+
       unless extras[:type]
         if extras[:set]
           type = ruby_value_to_type_name(extras[:set])
           extras[:type] = type unless type.nil?
         end
       end
+
+      # Add the switch to the store, along with all of it's options.
       command_line_options_store[long_name] = {
         :argument => argument
       }
@@ -302,12 +392,14 @@ module Af
       command_line_options_store[long_name][:no_accessor] = extras[:no_accessor] if extras[:no_accessor].present?
     end
 
+    # TODO AK: This doesn't seem to be used anywhere.  Maybe it can be removed?
     def self.opt_error(text)
       puts text
       help(usage)
       exit 1
     end
 
+    # Convert the provided option type name into a string used in notes.
     def self.argument_note_for_type(type_name)
       if type_name == :int
         "INTEGER"
@@ -344,6 +436,13 @@ module Af
       end
     end
 
+    # Convert or process the provided argument value based on the provided type.
+    #
+    # *Arguments*
+    #   * argument - the value to be processed
+    #   * type_name - the argument's type
+    #   * option_name - name of argument option (only used for logging)
+    #   * command_line_options - options hash for the given option_name
     def self.evaluate_argument_for_type(argument, type_name, option_name, command_line_option)
       argument_availability = command_line_option[:argument]
       choices = command_line_option[:choices]
@@ -368,7 +467,7 @@ module Af
             exit 0
           end
         end
-        return choice 
+        return choice
       elsif type_name == :hash
         return Hash[argument.split(',').map{|a| a.split('=')}]
       elsif type_name == :ints
@@ -402,6 +501,8 @@ module Af
       end
     end
 
+    # Convert the provided class constant into it's symbol option
+    # name.
     def self.ruby_value_to_type_name(value)
       if value.class == Fixnum
         :int
@@ -446,6 +547,12 @@ module Af
       end
     end
 
+    # Convert an array into a single string, where each item consumes a static
+    # number of characters.  Long fields are trucated and small ones are padded.
+    #
+    # *Arguments*
+    #   * fields - array of objects that respond to "to_s"
+    #   * sized - character count for each field in the new string????
     def self.columnized_row(fields, sized)
       r = []
       fields.each_with_index do |f, i|
@@ -454,6 +561,12 @@ module Af
       return r.join('   ')
     end
 
+    # Converts an array of arrays into a single array of columnized strings.
+    #
+    # *Arguments*
+    #   * rows - arrays to convert
+    #   * options - hash of options, includes:
+    #     :max_width => <integer max width of columns>
     def self.columnized(rows, options = {})
       sized = {}
       rows.each do |row|
@@ -467,6 +580,8 @@ module Af
       return rows.map { |row| "    " + columnized_row(row, sized).rstrip }
     end
 
+    # A number of default command line switches and switch groups available to all
+    # subclasses.
     opt '?', "show this help (--?? for all)", :short => '?', :group => :basic
     opt '??', "show help for all commands", :group => :basic, :hidden => true
     opt :application_version, "application version", :short => :V, :group => :basic
@@ -474,7 +589,6 @@ module Af
     opt_group :basic, "basic options", :priority => 0, :description => <<-DESCRIPTION
       These are the stanadard options offered to all Af commands.
     DESCRIPTION
-
     opt_group :advanced, "advanced options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are advanced options offered to this programs.
     DESCRIPTION
