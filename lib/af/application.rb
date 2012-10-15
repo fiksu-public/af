@@ -15,14 +15,15 @@ module Af
   #   * Command line option parsing.
   #   * Logging with Log4r.
   #   * Pre and post option processes hooks.
-  #   * ???
+  #   * Proxy support access to application frame functionality from other classes
   #
   # Subclasses must implement:
   #   * work
-  #   * ??
   #
   # Subclasses can implement:
   #   * pre_work
+  #
+  # Advanced Subclasses may implement:
   #   * post_command_line_parsing
   #   * option_handler
   #   * ??
@@ -167,12 +168,15 @@ module Af
 
     # Execute the actual work of the application upon execution.
     #
-    # TODO AK: Can we make this protected and remove the underscore?
+    # this method is used to wrap the actual run code with
+    # whatever specific code we are looking to maintain the
+    # execution context.
+    #
+    # one can imagine overlaoding this function with something
+    # call initiates a profiler or debugger
+    #
     def _work
       begin
-        # TODO AK: "work" isn't defined as method, but must be implemented
-        # in subclasses, correct?  Maybe we should create a method stub that
-        # throws a NotImplemented exception?
         work
       rescue SystemExit
         # we do nothing here
@@ -190,6 +194,10 @@ module Af
       end
 
       exit @has_errors ? 1 : 0
+    end
+
+    def work
+      raise NotImplemented.new("#{self.class.name}#work must be implemented to use the Application framework")
     end
 
     # Instantiate and run the application.
@@ -373,7 +381,8 @@ module Af
       return Signal.list.keys
     end
 
-    # TODO AK: Where is this called?  Is it just a utility method?
+    # Utility method to wrap code in a protective sheen
+    # use with "signal_list"
     def protect_from_signals
       # we are indiscriminate with the signals we block -- too bad ruby doesn't have some
       # reasonable signal management system
@@ -395,9 +404,31 @@ module Af
       end
     end
 
-    # TODO AK: I'm not sure I totally understand how these proxies function. Can
-    # you please explain?
-
+    # Proxy's are used by dependant classes to reach back to the Application frame for
+    # some functionality.
+    #
+    # consider a model that wishes to use the logging functionality of Af:
+    #
+    #    class Foo < ActiveRecord::Base
+    #      include ::Af::Application::SafeProxy
+    #
+    #      after_create :do_something_after_create
+    #
+    #      def foo_logger
+    #        return af_logger(self.class.name)
+    #      end
+    #
+    #      private
+    #      def do_something_after_create
+    #        foo_logger.info "created: #{self.inspect}"
+    #      end
+    #    end
+    #
+    # The difference between Proxy and SafeProxy is simply that
+    # SafeProxy can be used in classes that may not be in an Af::Application
+    # run (ie, models that are shared with a Rails web app wher Af::Application
+    # is never instantiated)
+    #
     module Proxy
       def af_logger(logger_name = (af_name || "Unknown"))
         return ::Af::Application.singleton.logger(logger_name)
