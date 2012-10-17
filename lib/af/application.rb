@@ -56,20 +56,78 @@ module Af
 
     @@singleton = nil
 
-    # Return the single allowable instance of this class.
-    #
-    # *Arguments*
-    #   * safe - defaults to false, instantiates instance if it doesn't exist
-    def self.singleton(safe = false)
-      if @@singleton.nil?
-        if safe
-          @@singleton = new
-        else
-          fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
+    class << self
+      # Return the single allowable instance of this class.
+      #
+      # *Arguments*
+      #   * safe - defaults to false, instantiates instance if it doesn't exist
+      def singleton(safe = false)
+        if @@singleton.nil?
+          if safe
+            @@singleton = new
+          else
+            fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
+          end
         end
+        return @@singleton
       end
-      return @@singleton
-    end
+
+      # Run this application with the provided arguments that must adhere to
+      # configured command line switches.  It rewrites ARGV with these values.
+      #
+      # *Example*
+      #   instance._run("-v", "--file", "foo.log")
+      #
+      # *Arguments*
+      #   * arguments - list of command line option strings
+      #
+      # TODO AK: I still don't love that we have to rewrite ARGV to call
+      # applications within Ruby.  I would prefer it if passing a hash of
+      # arguments prevented the use of Getoptlong and the args hash was
+      # processed according to the configred switches.
+      # TODO AK: Can we rename this to "run_with_arguments"?
+      def _run(*arguments)
+        # this ARGV hack is here for test specs to add script arguments
+        ARGV[0..-1] = arguments if arguments.length > 0
+        self.new._run
+      end
+
+      # Instantiate and run the application.
+      #
+      # *Arguments*
+      #   - arguments - ????
+      def run(*arguments)
+        application = self.new._run(*arguments)
+        application._work
+      end
+
+      # Parse and return the provided log level, which can be an integer,
+      # string integer or string constant.  Returns all loging levels if value
+      # cannot be parsed.
+      #
+      # *Arguments*
+      #   * logger_level - log level to be parsed
+      #
+      # TODO AK: Declaring a class method with "self.method_name" after declaring
+      # "protected" doesn't change the method's visibility.  If has to be defined
+      # using "class << self".
+      def parse_log_level(logger_level)
+        if logger_level.is_a? Integer
+          logger_level_value = logger_level
+        elsif logger_level.is_a? String
+          if logger_level[0] =~ /[0-9]/
+            logger_level_value = logger_level.to_i
+          else
+            logger_level_value = logger_level.constantize rescue nil
+            logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
+          end
+        else
+          logger_level_value = Log4r::ALL
+        end
+        return logger_level_value
+      end
+    end # class << self
+
 
     # TODO AK: What happens if this is called multiple times? It's not guarenteed
     # to only return the singleton object, right?
@@ -121,26 +179,6 @@ module Af
       # Check with Log4r to see if there is a logger by this name.
       # If Log4r doesn't have a logger by this name, make one with Af defaults.
       return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
-    end
-
-    # Run this application with the provided arguments that must adhere to
-    # configured command line switches.  It rewrites ARGV with these values.
-    #
-    # *Example*
-    #   instance._run("-v", "--file", "foo.log")
-    #
-    # *Arguments*
-    #   * arguments - list of command line option strings
-    #
-    # TODO AK: I still don't love that we have to rewrite ARGV to call
-    # applications within Ruby.  I would prefer it if passing a hash of
-    # arguments prevented the use of Getoptlong and the args hash was
-    # processed according to the configred switches.
-    # TODO AK: Can we rename this to "run_with_arguments"?
-    def self._run(*arguments)
-      # this ARGV hack is here for test specs to add script arguments
-      ARGV[0..-1] = arguments if arguments.length > 0
-      self.new._run
     end
 
     # Run the application, fetching and parsing options from the command
@@ -198,15 +236,6 @@ module Af
 
     def work
       raise NotImplemented.new("#{self.class.name}#work must be implemented to use the Application framework")
-    end
-
-    # Instantiate and run the application.
-    #
-    # *Arguments*
-    #   - arguments - ????
-    def self.run(*arguments)
-      application = self.new._run(*arguments)
-      application._work
     end
 
     protected
@@ -272,7 +301,7 @@ module Af
       end
 
       if @log_dump_configuration
-        puts "Log configuration search path:" 
+        puts "Log configuration search path:"
         puts " " + @log_configuration_search_path.join("\n ")
         puts "Log configuration files:"
         puts " " + @log_configuration_files.join("\n ")
@@ -323,32 +352,6 @@ module Af
 
     def cleanup_after_fork
       ActiveRecord::Base.connection.reconnect!
-    end
-
-    # Parse and return the provided log level, which can be an integer,
-    # string integer or string constant.  Returns all loging levels if value
-    # cannot be parsed.
-    #
-    # *Arguments*
-    #   * logger_level - log level to be parsed
-    #
-    # TODO AK: Declaring a class method with "self.method_name" after declaring
-    # "protected" doesn't change the method's visibility.  If has to be defined
-    # using "class << self".
-    def self.parse_log_level(logger_level)
-      if logger_level.is_a? Integer
-        logger_level_value = logger_level
-      elsif logger_level.is_a? String
-        if logger_level[0] =~ /[0-9]/
-          logger_level_value = logger_level.to_i
-        else
-          logger_level_value = logger_level.constantize rescue nil
-          logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
-        end
-      else
-        logger_level_value = Log4r::ALL
-      end
-      return logger_level_value
     end
 
     # Parses and sets the provided logger levels.
