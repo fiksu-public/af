@@ -1,5 +1,5 @@
-module Af
-  class TCPCommandClient
+module Af::TCPCommand
+  class Client
     include ::Af::Application::Proxy
 
     attr_reader :client, :server_hostname, :server_port
