@@ -58,20 +58,16 @@ module Af
     @@singleton = nil
 
     class << self
-      # Return the single allowable instance of this class.
+      # Instantiate and run the application.
       #
       # *Arguments*
-      #   * safe - defaults to false, instantiates instance if it doesn't exist
-      def singleton(safe = false)
-        if @@singleton.nil?
-          if safe
-            @@singleton = new
-          else
-            fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
-          end
-        end
-        return @@singleton
+      #   - arguments - ????
+      def run(*arguments)
+        application = self.new._run(*arguments)
+        application._work
       end
+
+      protected
 
       # Run this application with the provided arguments that must adhere to
       # configured command line switches.  It rewrites ARGV with these values.
@@ -93,13 +89,19 @@ module Af
         self.new._run
       end
 
-      # Instantiate and run the application.
+      # Return the single allowable instance of this class.
       #
       # *Arguments*
-      #   - arguments - ????
-      def run(*arguments)
-        application = self.new._run(*arguments)
-        application._work
+      #   * safe - defaults to false, instantiates instance if it doesn't exist
+      def singleton(safe = false)
+        if @@singleton.nil?
+          if safe
+            @@singleton = new
+          else
+            fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
+          end
+        end
+        return @@singleton
       end
 
       # Parse and return the provided log level, which can be an integer,
@@ -128,59 +130,6 @@ module Af
         return logger_level_value
       end
     end # class << self
-
-
-    # TODO AK: What happens if this is called multiple times? It's not guarenteed
-    # to only return the singleton object, right?
-    def initialize
-      super
-      @@singleton = self
-      set_connection_application_name(startup_database_application_name)
-      $stdout.sync = true
-      $stderr.sync = true
-      update_opts :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
-      update_opts :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
-      update_opts :log_stdout, :default => Rails.root + "log/runner.log"
-      update_opts :log_stderr, :default => Rails.root + "log/runner-errors.log"
-    end
-
-    # Set the application name on the ActiveRecord connection. It is
-    # truncated to 64 characters.
-    #
-    # *Arguments*
-    #   * name - application name to set on the connection
-    def set_connection_application_name(name)
-      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(name[0...63])
-    end
-
-    # Application name consisting of process PID and af name.
-    def startup_database_application_name
-      return "//pid=#{Process.pid}/#{af_name}"
-    end
-
-    # Accessor for the application name set on the ActiveRecord database connection.
-    def database_application_name
-      return self.class.startup_database_application_name
-    end
-
-    # Accessor for the af name set on the instance's class.
-    #
-    # TODO AK: Where is "name" set? Does the subclass need to implement it?
-    def af_name
-      return self.class.name
-    end
-
-    # Returns the logger with the provided name, instantiating it if needed.
-    #
-    # *Arguments*
-    #   * logger_name - logger to return, defaults to ":default"
-    def logger(logger_name = :default)
-      # Coerce the logger_name if needed.
-      logger_name = af_name if logger_name == :default
-      # Check with Log4r to see if there is a logger by this name.
-      # If Log4r doesn't have a logger by this name, make one with Af defaults.
-      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
-    end
 
     # Run the application, fetching and parsing options from the command
     # line.
@@ -235,11 +184,63 @@ module Af
       exit @has_errors ? 1 : 0
     end
 
+    protected
+
+    # TODO AK: What happens if this is called multiple times? It's not guarenteed
+    # to only return the singleton object, right?
+    def initialize
+      super
+      @@singleton = self
+      set_connection_application_name(startup_database_application_name)
+      $stdout.sync = true
+      $stderr.sync = true
+      update_opts :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
+      update_opts :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
+      update_opts :log_stdout, :default => Rails.root + "log/runner.log"
+      update_opts :log_stderr, :default => Rails.root + "log/runner-errors.log"
+    end
+
+    # Set the application name on the ActiveRecord connection. It is
+    # truncated to 64 characters.
+    #
+    # *Arguments*
+    #   * name - application name to set on the connection
+    def set_connection_application_name(name)
+      ActiveRecord::ConnectionAdapters::ConnectionPool.initialize_connection_application_name(name[0...63])
+    end
+
+    # Application name consisting of process PID and af name.
+    def startup_database_application_name
+      return "//pid=#{Process.pid}/#{af_name}"
+    end
+
+    # Accessor for the application name set on the ActiveRecord database connection.
+    def database_application_name
+      return self.class.startup_database_application_name
+    end
+
+    # Accessor for the af name set on the instance's class.
+    #
+    # TODO AK: Where is "name" set? Does the subclass need to implement it?
+    def af_name
+      return self.class.name
+    end
+
+    # Returns the logger with the provided name, instantiating it if needed.
+    #
+    # *Arguments*
+    #   * logger_name - logger to return, defaults to ":default"
+    def logger(logger_name = :default)
+      # Coerce the logger_name if needed.
+      logger_name = af_name if logger_name == :default
+      # Check with Log4r to see if there is a logger by this name.
+      # If Log4r doesn't have a logger by this name, make one with Af defaults.
+      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
+    end
+
     def work
       raise NotImplemented.new("#{self.class.name}#work must be implemented to use the Application framework")
     end
-
-    protected
 
     # TODO AK: Is this like a method missing for option parsing?  Some
     # comments describing it's purpose would be helpful.
