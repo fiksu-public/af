@@ -49,6 +49,7 @@ module Af
     opt :log_levels, "set log levels", :type => :hash, :group => :logging
     opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string, :group => :logging
     opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string, :group => :logging
+    opt :log_console, "force logging to console", :group => :logging
     opt :gc_profiler, "enable the gc profiler", :group => :debugging
     opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
 
@@ -289,11 +290,15 @@ module Af
     # Overload to do any operations that need to be handled before work is called.
     # Call exit if needed. Always call super.
     def pre_work
-      logging_load_configuration
-
-      if logging_configuration_looks_bogus
+      if log_console
         Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
         Log4r::Logger.root.outputters << Log4r::Outputter.stdout
+      else
+        logging_load_configuration
+        if logging_configuration_looks_bogus
+          Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
+          Log4r::Logger.root.outputters << Log4r::Outputter.stdout
+        end
       end
 
       if @log_levels
