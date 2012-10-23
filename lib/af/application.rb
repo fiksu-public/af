@@ -57,16 +57,32 @@ module Af
 
     @@singleton = nil
 
-    class << self
-      # Instantiate and run the application.
-      #
-      # *Arguments*
-      #   - arguments - ????
-      def run(*arguments)
-        application = self.new._run(*arguments)
-        application._work
-      end
 
+    # Instantiate and run the application.
+    #
+    # *Arguments*
+    #   - arguments - ????
+    def self.run(*arguments)
+      application = self.new._run(*arguments)
+      application._work
+    end
+
+    # Return the single allowable instance of this class.
+    #
+    # *Arguments*
+    #   * safe - defaults to false, instantiates instance if it doesn't exist
+    def self.singleton(safe = false)
+      if @@singleton.nil?
+        if safe
+          @@singleton = new
+        else
+          fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
+        end
+      end
+      return @@singleton
+    end
+
+    class << self
       protected
 
       # Run this application with the provided arguments that must adhere to
@@ -87,21 +103,6 @@ module Af
         # this ARGV hack is here for test specs to add script arguments
         ARGV[0..-1] = arguments if arguments.length > 0
         self.new._run
-      end
-
-      # Return the single allowable instance of this class.
-      #
-      # *Arguments*
-      #   * safe - defaults to false, instantiates instance if it doesn't exist
-      def singleton(safe = false)
-        if @@singleton.nil?
-          if safe
-            @@singleton = new
-          else
-            fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
-          end
-        end
-        return @@singleton
       end
 
       # Parse and return the provided log level, which can be an integer,
@@ -184,6 +185,25 @@ module Af
       exit @has_errors ? 1 : 0
     end
 
+    # Accessor for the af name set on the instance's class.
+    #
+    # TODO AK: Where is "name" set? Does the subclass need to implement it?
+    def af_name
+      return self.class.name
+    end
+
+    # Returns the logger with the provided name, instantiating it if needed.
+    #
+    # *Arguments*
+    #   * logger_name - logger to return, defaults to ":default"
+    def logger(logger_name = :default)
+      # Coerce the logger_name if needed.
+      logger_name = af_name if logger_name == :default
+      # Check with Log4r to see if there is a logger by this name.
+      # If Log4r doesn't have a logger by this name, make one with Af defaults.
+      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
+    end
+
     protected
 
     # TODO AK: What happens if this is called multiple times? It's not guarenteed
@@ -217,25 +237,6 @@ module Af
     # Accessor for the application name set on the ActiveRecord database connection.
     def database_application_name
       return self.class.startup_database_application_name
-    end
-
-    # Accessor for the af name set on the instance's class.
-    #
-    # TODO AK: Where is "name" set? Does the subclass need to implement it?
-    def af_name
-      return self.class.name
-    end
-
-    # Returns the logger with the provided name, instantiating it if needed.
-    #
-    # *Arguments*
-    #   * logger_name - logger to return, defaults to ":default"
-    def logger(logger_name = :default)
-      # Coerce the logger_name if needed.
-      logger_name = af_name if logger_name == :default
-      # Check with Log4r to see if there is a logger by this name.
-      # If Log4r doesn't have a logger by this name, make one with Af defaults.
-      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
     end
 
     def work
