@@ -30,7 +30,10 @@ module Af
   #
   class Application < ::Af::CommandLiner
 
-    # Default set of option groups and options.
+    #-----------------------------
+    # *** Command Line Options ***
+    #+++++++++++++++++++++++++++++
+
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
@@ -53,10 +56,17 @@ module Af
     opt :gc_profiler, "enable the gc profiler", :group => :debugging
     opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
 
+    #-------------------
+    # *** Attributes ***
+    #+++++++++++++++++++
+
     attr_accessor :has_errors, :daemon
 
     @@singleton = nil
 
+    #----------------------
+    # *** Class methods ***
+    #++++++++++++++++++++++
 
     # Instantiate and run the application.
     #
@@ -132,6 +142,10 @@ module Af
       end
     end # class << self
 
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
+
     # Run the application, fetching and parsing options from the command
     # line.
     #
@@ -157,13 +171,12 @@ module Af
 
     # Execute the actual work of the application upon execution.
     #
-    # this method is used to wrap the actual run code with
+    # This method is used to wrap the actual run code with
     # whatever specific code we are looking to maintain the
     # execution context.
     #
     # one can imagine overlaoding this function with something
     # call initiates a profiler or debugger
-    #
     def _work
       begin
         work
@@ -239,6 +252,7 @@ module Af
       return self.class.startup_database_application_name
     end
 
+    # Work performed by this application.  MUST be implemented by subclasses.
     def work
       raise NotImplemented.new("#{self.class.name}#work must be implemented to use the Application framework")
     end
