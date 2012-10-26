@@ -107,7 +107,7 @@ module Af
     # Update options for the provided long switch option name.
     #  *Arguments*
     #   * long_name - string name of switch
-    #   * updates - hash of chnages to option configuration
+    #   * updates - hash of changes to option configuration
     def update_opts(long_name, updates)
       long_name = long_name.to_s
       # Convert prefix underscores to dashes.
@@ -117,7 +117,7 @@ module Af
       (all_command_line_options_stores[long_name] || {}).merge!(updates)
     end
 
-    # Returns the union of all command line option stores in the class heirarchy.
+    # Returns the union of all command line option stores in the class hierarchy.
     # The result is cached and returned for future calls.
     def all_command_line_options_stores
       unless @all_command_line_options_stores
@@ -202,7 +202,7 @@ module Af
           end
           # TODO AK: This seems to only be declared in the subclass Application,
           # which seems super dangerous.  Maybe there should at least be an empty
-          # emthod declaration in this class that raises a NotImplementedError?
+          # method declaration in this class that raises a NotImplementedError?
           option_handler(option, argument)
         end
       end
@@ -215,7 +215,7 @@ module Af
     end
 
     # Returns the union of all grouped command line option stores in the class
-    # heirarchy. The result is cached and returned for future calls.
+    # hierarchy. The result is cached and returned for future calls.
     def all_command_line_option_groups_stores
       unless @all_command_line_option_groups_stores
         @all_command_line_option_groups_stores ||= {}
@@ -548,7 +548,7 @@ module Af
     end
 
     # Convert an array into a single string, where each item consumes a static
-    # number of characters.  Long fields are trucated and small ones are padded.
+    # number of characters.  Long fields are truncated and small ones are padded.
     #
     # *Arguments*
     #   * fields - array of objects that respond to "to_s"

@@ -431,7 +431,7 @@ module Af
     #
     # The difference between Proxy and SafeProxy is simply that
     # SafeProxy can be used in classes that may not be in an Af::Application
-    # run (ie, models that are shared with a Rails web app wher Af::Application
+    # run (ie, models that are shared with a Rails web app where Af::Application
     # is never instantiated)
     #
     module Proxy

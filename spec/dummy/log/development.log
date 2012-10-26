@@ -1,0 +1,27 @@
+Connecting to database specified by database.yml
+  [1m[36m (0.2ms)[0m  [1mset application_name = 'Dummy::Application/23734'[0m
+Connecting to database specified by database.yml
+  [1m[36m (0.1ms)[0m  [1mset application_name = 'Dummy::Application/23758'[0m
+Connecting to database specified by database.yml
+  [1m[36m (0.1ms)[0m  [1mset application_name = 'Dummy::Application/23781'[0m
+Connecting to database specified by database.yml
+  [1m[36m (0.2ms)[0m  [1mset application_name = 'Dummy::Application/23810'[0m
+Connecting to database specified by database.yml
+  [1m[36m (0.1ms)[0m  [1mset application_name = 'Dummy::Application/23835'[0m
+Connecting to database specified by database.yml
+  [1m[36m (0.1ms)[0m  [1mset application_name = 'Dummy::Application/24229'[0m
+Connecting to database specified by database.yml
+  [1m[36m (0.2ms)[0m  [1mset application_name = 'Dummy::Application/24253'[0m
+  [1m[35m (0.3ms)[0m  set application_name = '//pid=24253/Af::Examples::AfScriptWithOptions'
+Connecting to database specified by database.yml
+  [1m[36m (0.2ms)[0m  [1mset application_name = 'Dummy::Application/24408'[0m
+  [1m[35m (0.3ms)[0m  set application_name = '//pid=24408/Af::Examples::AfScriptWithOptions'
+Connecting to database specified by database.yml
+  [1m[36m (0.1ms)[0m  [1mset application_name = 'Dummy::Application/24467'[0m
+  [1m[35m (0.4ms)[0m  set application_name = '//pid=24467/Af::Examples::AfScriptWithOptions'
+Connecting to database specified by database.yml
+  [1m[36m (0.2ms)[0m  [1mset application_name = 'Dummy::Application/19241'[0m
+  [1m[35m (0.3ms)[0m  set application_name = '//pid=19241/Af::Examples::AfScriptWithOptions'
+Connecting to database specified by database.yml
+  [1m[36m (0.1ms)[0m  [1mset application_name = 'Dummy::Application/19309'[0m
+  [1m[35m (0.3ms)[0m  set application_name = '//pid=19309/Af::Examples::AfScriptWithOptions'
