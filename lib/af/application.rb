@@ -92,55 +92,51 @@ module Af
       return @@singleton
     end
 
-    class << self
-      protected
+    # Run this application with the provided arguments that must adhere to
+    # configured command line switches.  It rewrites ARGV with these values.
+    #
+    # *Example*
+    #   instance._run("-v", "--file", "foo.log")
+    #
+    # *Arguments*
+    #   * arguments - list of command line option strings
+    #
+    # TODO AK: I still don't love that we have to rewrite ARGV to call
+    # applications within Ruby.  I would prefer it if passing a hash of
+    # arguments prevented the use of Getoptlong and the args hash was
+    # processed according to the configred switches.
+    # TODO AK: Can we rename this to "run_with_arguments"?
+    def self._run(*arguments)
+      # this ARGV hack is here for test specs to add script arguments
+      ARGV[0..-1] = arguments if arguments.length > 0
+      self.new._run
+    end
 
-      # Run this application with the provided arguments that must adhere to
-      # configured command line switches.  It rewrites ARGV with these values.
-      #
-      # *Example*
-      #   instance._run("-v", "--file", "foo.log")
-      #
-      # *Arguments*
-      #   * arguments - list of command line option strings
-      #
-      # TODO AK: I still don't love that we have to rewrite ARGV to call
-      # applications within Ruby.  I would prefer it if passing a hash of
-      # arguments prevented the use of Getoptlong and the args hash was
-      # processed according to the configred switches.
-      # TODO AK: Can we rename this to "run_with_arguments"?
-      def _run(*arguments)
-        # this ARGV hack is here for test specs to add script arguments
-        ARGV[0..-1] = arguments if arguments.length > 0
-        self.new._run
-      end
-
-      # Parse and return the provided log level, which can be an integer,
-      # string integer or string constant.  Returns all loging levels if value
-      # cannot be parsed.
-      #
-      # *Arguments*
-      #   * logger_level - log level to be parsed
-      #
-      # TODO AK: Declaring a class method with "self.method_name" after declaring
-      # "protected" doesn't change the method's visibility.  If has to be defined
-      # using "class << self".
-      def parse_log_level(logger_level)
-        if logger_level.is_a? Integer
-          logger_level_value = logger_level
-        elsif logger_level.is_a? String
-          if logger_level[0] =~ /[0-9]/
-            logger_level_value = logger_level.to_i
-          else
-            logger_level_value = logger_level.constantize rescue nil
-            logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
-          end
+    # Parse and return the provided log level, which can be an integer,
+    # string integer or string constant.  Returns all loging levels if value
+    # cannot be parsed.
+    #
+    # *Arguments*
+    #   * logger_level - log level to be parsed
+    #
+    # TODO AK: Declaring a class method with "self.method_name" after declaring
+    # "protected" doesn't change the method's visibility.  If has to be defined
+    # using "class << self".
+    def self.parse_log_level(logger_level)
+      if logger_level.is_a? Integer
+        logger_level_value = logger_level
+      elsif logger_level.is_a? String
+        if logger_level[0] =~ /[0-9]/
+          logger_level_value = logger_level.to_i
         else
-          logger_level_value = Log4r::ALL
+          logger_level_value = logger_level.constantize rescue nil
+          logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
         end
-        return logger_level_value
+      else
+        logger_level_value = Log4r::ALL
       end
-    end # class << self
+      return logger_level_value
+    end
 
     #-------------------------
     # *** Instance Methods ***
