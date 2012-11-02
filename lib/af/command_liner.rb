@@ -5,9 +5,7 @@ module Af
   # stored as class instance variables.
   class CommandLiner
 
-    #----------------------
-    # *** Class methods ***
-    #++++++++++++++++++++++
+    ### Class methods ###
 
     # Return the command line options store for just this class.
     def self.command_line_options_store
@@ -366,9 +364,7 @@ module Af
       return rows.map { |row| "    " + columnized_row(row, sized).rstrip }
     end
 
-    #-------------------------
-    # *** Instance Methods ***
-    #+++++++++++++++++++++++++
+    ### Instance Methods ###
 
     # Returns the current version of the application.
     # *Must be overridden in a subclass.*

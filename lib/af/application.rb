@@ -30,9 +30,7 @@ module Af
   #
   class Application < ::Af::CommandLiner
 
-    #-----------------------------
-    # *** Command Line Options ***
-    #+++++++++++++++++++++++++++++
+    ### Command Line Options ###
 
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are options associated with logging whose core is Log4r.
@@ -56,17 +54,13 @@ module Af
     opt :gc_profiler, "enable the gc profiler", :group => :debugging
     opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
 
-    #-------------------
-    # *** Attributes ***
-    #+++++++++++++++++++
+    ### Attributes ###
 
     attr_accessor :has_errors, :daemon
 
     @@singleton = nil
 
-    #----------------------
-    # *** Class methods ***
-    #++++++++++++++++++++++
+    ### Class methods ###
 
     # Instantiate and run the application.
     #
@@ -138,9 +132,7 @@ module Af
       return logger_level_value
     end
 
-    #-------------------------
-    # *** Instance Methods ***
-    #+++++++++++++++++++++++++
+    ### Instance Methods ###
 
     # Run the application, fetching and parsing options from the command
     # line.
