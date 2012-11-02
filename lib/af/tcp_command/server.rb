@@ -1,5 +1,5 @@
-module Af
-  class TCPCommandServer
+module Af::TCPCommand
+  class Server
     include ::Af::Application::Proxy
 
     class NoMoreToDo < StandardError

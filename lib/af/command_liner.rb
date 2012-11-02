@@ -5,228 +5,12 @@ module Af
   # stored as class instance variables.
   class CommandLiner
 
-    # Returns the current version of the application.
-    # *Must be overridden in a subclass.*
-    def application_version
-      return "#{self.name}: unknown application version"
-    end
-
-    # Returns a string detailing application usage.
-    def usage
-      return @usage
-    end
-
-    # Prints to stdout application usage and all command line options.
-    def help(command_line_usage, show_hidden = false)
-
-      # Print usage.
-      puts(command_line_usage)
-
-      # Fetch all command line options stores (grouped and not).
-      grouped_commands = all_command_line_option_groups_stores
-      commands = all_command_line_options_stores
-
-      # Add non-grouped options to grouped as "basic".
-      commands.each do |long_switch,configuration|
-        group_name = (configuration[:group] || :basic)
-        grouped_commands[group_name] ||= {}
-        grouped_commands[group_name][:commands] ||= []
-        grouped_commands[group_name][:commands] << long_switch
-      end
-
-      # Array of strings to be printed to stdout.
-      output = []
-
-      # Iterate through all command groups  sorted by priority.
-      grouped_commands.keys.sort{|a,b| (grouped_commands[a][:priority] || 50) <=> (grouped_commands[b][:priority] || 50)}.each do |group_name|
-        grouped_command = grouped_commands[group_name]
-
-        unless grouped_command[:commands].blank?
-          if grouped_command[:hidden] == true && show_hidden == false
-            # skipping hidden groups
-          else
-            output << "#{group_name}: " + grouped_command[:title]
-            output << " " + (grouped_command[:description] || "").chomp.split("\n").map(&:strip).join("\n ")
-
-            rows = []
-
-            # Iterate trhough all commands in this group.
-            grouped_command[:commands].sort.each do |long_switch|
-              parameters = commands[long_switch]
-              if parameters[:hidden] == true && show_hidden == false
-                # skipping hidden commands
-              else
-                columns = []
-                switches = "#{long_switch}"
-                if (parameters[:short])
-                  switches << " | #{parameters[:short]}"
-                end
-                unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
-                  if (parameters[:argument_note])
-                    switches << " #{parameters[:argument_note]}"
-                  elsif (parameters[:type])
-                    note = self.class.argument_note_for_type(parameters[:type])
-                    switches << " #{note}" if note
-                  end
-                end
-                columns << switches
-                notes = []
-                unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
-                  if parameters[:default].present?
-                    if parameters[:default].is_a? Array
-                      notes << "(default: #{parameters[:default].join(',')})"
-                    elsif parameters[:default].is_a? Hash
-                      notes << "(default: #{parameters[:default].map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
-                    else
-                      notes << "(default: #{parameters[:default]})"
-                    end
-                  end
-                end
-                notes << (parameters[:note] || "")
-                notes << "(choices: #{parameters[:choices].map(&:to_s).join(', ')})" unless parameters[:choices].blank?
-                if parameters[:environment_variable]
-                  notes << " [env: #{parameters[:environment_variable]}]"
-                end
-                columns << notes.join(' ')
-                rows << columns
-              end
-            end
-            output += self.class.columnized(rows)
-          end
-        end
-      end
-
-      puts output.join("\n")
-    end
-
-    # Return the store of command line options for just this class.
-    def command_line_options_store
-      return self.class.command_line_options_store
-    end
-
-    # Update options for the provided long switch option name.
-    #  *Arguments*
-    #   * long_name - string name of switch
-    #   * updates - hash of chnages to option configuration
-    def update_opts(long_name, updates)
-      long_name = long_name.to_s
-      # Convert prefix underscores to dashes.
-      unless long_name[0..1] == "--"
-        long_name = "--#{long_name.gsub(/_/,'-')}"
-      end
-      (all_command_line_options_stores[long_name] || {}).merge!(updates)
-    end
-
-    # Returns the union of all command line option stores in the class heirarchy.
-    # The result is cached and returned for future calls.
-    def all_command_line_options_stores
-      unless @all_command_line_options_stores
-        @all_command_line_options_stores ||= {}
-
-        self.class.ancestors.reverse.each do |ancestor|
-          if ancestor.respond_to?(:command_line_options_store)
-            @all_command_line_options_stores.merge!(ancestor.command_line_options_store)
-          end
-        end
-      end
-      return @all_command_line_options_stores
-    end
-
-
-    # Collect and process all of the switches (values) on the command
-    # line, as previously configured.
-    #
-    # TODO AK: As far as I can tell, the "options" hash argument is never
-    # used.  Perhaps it can be removed?
-    def command_line_options(options = {}, usage = nil)
-
-      # Set usage if provided, otherwise set to default.
-      if usage.nil?
-        @usage = "rails runner #{self.class.name}.run [OPTIONS]"
-      else
-        @usage = usage
-      end
-
-      # Iterate through all options in the class heirachy.
-      # Create instance variables and accessor methods for each.
-      all_command_line_options_stores.each do |long_name,options|
-        unless options[:var]
-          var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
-          options[:var] = var_name
-        end
-        if options[:var]
-          if options[:default].present? || !self.instance_variable_defined?("@#{options[:var]}".to_sym)
-            self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
-          end
-          unless options[:no_accessor]
-            eval("class << self; attr_accessor :#{options[:var]}; end")
-          end
-        end
-      end
-
-      # Fetch the actual switches (and values) from the command line.
-      get_options = ::Af::GetOptions.new(all_command_line_options_stores)
-
-      # Iterate through the command line options. Print and exit if the switch
-      # is invalid, help or app version.  Otherwise, process and handle.
-      get_options.each do |option,argument|
-        if option == '--?'
-          help(usage)
-          exit 0
-        elsif option == '--??'
-          help(usage, true)
-          exit 0
-        elsif option == '--application-version'
-          puts application_version
-          exit 0
-        else
-          command_line_option = all_command_line_options_stores[option]
-          if command_line_option.nil?
-            puts "unknown option: #{option}"
-            help(usage)
-            exit 0
-          elsif command_line_option.is_a?(Hash)
-            # Try to determine argument type and cast it.
-            argument = command_line_option[:set] || argument
-            type_name = self.class.ruby_value_to_type_name(command_line_option[:set])
-            type_name = command_line_option[:type] unless command_line_option[:type].blank?
-            type_name = :string if type_name.nil? && command_line_option[:method].nil?
-            argument_value = self.class.evaluate_argument_for_type(argument, type_name, option, command_line_option)
-            # Argument converted, so call with proc and/or assign to instance variable.
-            if command_line_option[:method]
-              argument_value = command_line_option[:method].call(option, argument_value)
-            end
-            if command_line_option[:var]
-              self.instance_variable_set("@#{command_line_option[:var]}".to_sym, argument_value)
-            end
-          end
-          # TODO AK: This seems to only be declared in the subclass Application,
-          # which seems super dangerous.  Maybe there should at least be an empty
-          # emthod declaration in this class that raises a NotImplementedError?
-          option_handler(option, argument)
-        end
-      end
-    end
+    ### Class methods ###
 
     # Return the command line options store for just this class.
     def self.command_line_options_store
       @command_line_options_store ||= {}
       return @command_line_options_store
-    end
-
-    # Returns the union of all grouped command line option stores in the class
-    # heirarchy. The result is cached and returned for future calls.
-    def all_command_line_option_groups_stores
-      unless @all_command_line_option_groups_stores
-        @all_command_line_option_groups_stores ||= {}
-
-        self.class.ancestors.reverse.each do |ancestor|
-          if ancestor.respond_to?(:command_line_option_groups_store)
-            @all_command_line_option_groups_stores.merge!(ancestor.command_line_option_groups_store)
-          end
-        end
-      end
-      return @all_command_line_option_groups_stores
     end
 
     # Return the command line options groups store for just this class.
@@ -329,7 +113,7 @@ module Af
       # Ensure long name is in the proper string format.
       long_name = long_name.to_s
       unless long_name[0..1] == "--"
-        long_name = "--#{long_name.gsub(/_/,'-')}" 
+        long_name = "--#{long_name.gsub(/_/,'-')}"
       end
 
       unless extras[:type]
@@ -578,6 +362,226 @@ module Af
       end
 
       return rows.map { |row| "    " + columnized_row(row, sized).rstrip }
+    end
+
+    ### Instance Methods ###
+
+    # Returns the current version of the application.
+    # *Must be overridden in a subclass.*
+    def application_version
+      return "#{self.name}: unknown application version"
+    end
+
+    # Returns a string detailing application usage.
+    def usage
+      return @usage
+    end
+
+    # Prints to stdout application usage and all command line options.
+    def help(command_line_usage, show_hidden = false)
+
+      # Print usage.
+      puts(command_line_usage)
+
+      # Fetch all command line options stores (grouped and not).
+      grouped_commands = all_command_line_option_groups_stores
+      commands = all_command_line_options_stores
+
+      # Add non-grouped options to grouped as "basic".
+      commands.each do |long_switch,configuration|
+        group_name = (configuration[:group] || :basic)
+        grouped_commands[group_name] ||= {}
+        grouped_commands[group_name][:commands] ||= []
+        grouped_commands[group_name][:commands] << long_switch
+      end
+
+      # Array of strings to be printed to stdout.
+      output = []
+
+      # Iterate through all command groups  sorted by priority.
+      grouped_commands.keys.sort{|a,b| (grouped_commands[a][:priority] || 50) <=> (grouped_commands[b][:priority] || 50)}.each do |group_name|
+        grouped_command = grouped_commands[group_name]
+
+        unless grouped_command[:commands].blank?
+          if grouped_command[:hidden] == true && show_hidden == false
+            # skipping hidden groups
+          else
+            output << "#{group_name}: " + grouped_command[:title]
+            output << " " + (grouped_command[:description] || "").chomp.split("\n").map(&:strip).join("\n ")
+
+            rows = []
+
+            # Iterate trhough all commands in this group.
+            grouped_command[:commands].sort.each do |long_switch|
+              parameters = commands[long_switch]
+              if parameters[:hidden] == true && show_hidden == false
+                # skipping hidden commands
+              else
+                columns = []
+                switches = "#{long_switch}"
+                if (parameters[:short])
+                  switches << " | #{parameters[:short]}"
+                end
+                unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
+                  if (parameters[:argument_note])
+                    switches << " #{parameters[:argument_note]}"
+                  elsif (parameters[:type])
+                    note = self.class.argument_note_for_type(parameters[:type])
+                    switches << " #{note}" if note
+                  end
+                end
+                columns << switches
+                notes = []
+                unless (parameters[:argument] == ::Af::GetOptions::NO_ARGUMENT)
+                  if parameters[:default].present?
+                    if parameters[:default].is_a? Array
+                      notes << "(default: #{parameters[:default].join(',')})"
+                    elsif parameters[:default].is_a? Hash
+                      notes << "(default: #{parameters[:default].map{|k,v| k.to_s + '=>' + v.to_s}.join(',')}"
+                    else
+                      notes << "(default: #{parameters[:default]})"
+                    end
+                  end
+                end
+                notes << (parameters[:note] || "")
+                notes << "(choices: #{parameters[:choices].map(&:to_s).join(', ')})" unless parameters[:choices].blank?
+                if parameters[:environment_variable]
+                  notes << " [env: #{parameters[:environment_variable]}]"
+                end
+                columns << notes.join(' ')
+                rows << columns
+              end
+            end
+            output += self.class.columnized(rows)
+          end
+        end
+      end
+
+      puts output.join("\n")
+    end
+
+    # Return the store of command line options for just this class.
+    def command_line_options_store
+      return self.class.command_line_options_store
+    end
+
+    # Update options for the provided long switch option name.
+    #  *Arguments*
+    #   * long_name - string name of switch
+    #   * updates - hash of chnages to option configuration
+    def update_opts(long_name, updates)
+      long_name = long_name.to_s
+      # Convert prefix underscores to dashes.
+      unless long_name[0..1] == "--"
+        long_name = "--#{long_name.gsub(/_/,'-')}"
+      end
+      (all_command_line_options_stores[long_name] || {}).merge!(updates)
+    end
+
+    # Returns the union of all command line option stores in the class heirarchy.
+    # The result is cached and returned for future calls.
+    def all_command_line_options_stores
+      unless @all_command_line_options_stores
+        @all_command_line_options_stores ||= {}
+
+        self.class.ancestors.reverse.each do |ancestor|
+          if ancestor.respond_to?(:command_line_options_store)
+            @all_command_line_options_stores.merge!(ancestor.command_line_options_store)
+          end
+        end
+      end
+      return @all_command_line_options_stores
+    end
+
+
+    # Collect and process all of the switches (values) on the command
+    # line, as previously configured.
+    #
+    # TODO AK: As far as I can tell, the "options" hash argument is never
+    # used.  Perhaps it can be removed?
+    def command_line_options(options = {}, usage = nil)
+
+      # Set usage if provided, otherwise set to default.
+      if usage.nil?
+        @usage = "rails runner #{self.class.name}.run [OPTIONS]"
+      else
+        @usage = usage
+      end
+
+      # Iterate through all options in the class heirachy.
+      # Create instance variables and accessor methods for each.
+      all_command_line_options_stores.each do |long_name,options|
+        unless options[:var]
+          var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
+          options[:var] = var_name
+        end
+        if options[:var]
+          if options[:default].present? || !self.instance_variable_defined?("@#{options[:var]}".to_sym)
+            self.instance_variable_set("@#{options[:var]}".to_sym, options[:default])
+          end
+          unless options[:no_accessor]
+            eval("class << self; attr_accessor :#{options[:var]}; end")
+          end
+        end
+      end
+
+      # Fetch the actual switches (and values) from the command line.
+      get_options = ::Af::GetOptions.new(all_command_line_options_stores)
+
+      # Iterate through the command line options. Print and exit if the switch
+      # is invalid, help or app version.  Otherwise, process and handle.
+      get_options.each do |option,argument|
+        if option == '--?'
+          help(usage)
+          exit 0
+        elsif option == '--??'
+          help(usage, true)
+          exit 0
+        elsif option == '--application-version'
+          puts application_version
+          exit 0
+        else
+          command_line_option = all_command_line_options_stores[option]
+          if command_line_option.nil?
+            puts "unknown option: #{option}"
+            help(usage)
+            exit 0
+          elsif command_line_option.is_a?(Hash)
+            # Try to determine argument type and cast it.
+            argument = command_line_option[:set] || argument
+            type_name = self.class.ruby_value_to_type_name(command_line_option[:set])
+            type_name = command_line_option[:type] unless command_line_option[:type].blank?
+            type_name = :string if type_name.nil? && command_line_option[:method].nil?
+            argument_value = self.class.evaluate_argument_for_type(argument, type_name, option, command_line_option)
+            # Argument converted, so call with proc and/or assign to instance variable.
+            if command_line_option[:method]
+              argument_value = command_line_option[:method].call(option, argument_value)
+            end
+            if command_line_option[:var]
+              self.instance_variable_set("@#{command_line_option[:var]}".to_sym, argument_value)
+            end
+          end
+          # TODO AK: This seems to only be declared in the subclass Application,
+          # which seems super dangerous.  Maybe there should at least be an empty
+          # emthod declaration in this class that raises a NotImplementedError?
+          option_handler(option, argument)
+        end
+      end
+    end
+
+    # Returns the union of all grouped command line option stores in the class
+    # heirarchy. The result is cached and returned for future calls.
+    def all_command_line_option_groups_stores
+      unless @all_command_line_option_groups_stores
+        @all_command_line_option_groups_stores ||= {}
+
+        self.class.ancestors.reverse.each do |ancestor|
+          if ancestor.respond_to?(:command_line_option_groups_store)
+            @all_command_line_option_groups_stores.merge!(ancestor.command_line_option_groups_store)
+          end
+        end
+      end
+      return @all_command_line_option_groups_stores
     end
 
     # A number of default command line switches and switch groups available to all

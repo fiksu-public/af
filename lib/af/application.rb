@@ -30,7 +30,8 @@ module Af
   #
   class Application < ::Af::CommandLiner
 
-    # Default set of option groups and options.
+    ### Command Line Options ###
+
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
@@ -53,9 +54,22 @@ module Af
     opt :gc_profiler, "enable the gc profiler", :group => :debugging
     opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
 
+    ### Attributes ###
+
     attr_accessor :has_errors, :daemon
 
     @@singleton = nil
+
+    ### Class methods ###
+
+    # Instantiate and run the application.
+    #
+    # *Arguments*
+    #   - arguments - ????
+    def self.run(*arguments)
+      application = self.new._run(*arguments)
+      application._work
+    end
 
     # Return the single allowable instance of this class.
     #
@@ -71,6 +85,127 @@ module Af
       end
       return @@singleton
     end
+
+    # Run this application with the provided arguments that must adhere to
+    # configured command line switches.  It rewrites ARGV with these values.
+    #
+    # *Example*
+    #   instance._run("-v", "--file", "foo.log")
+    #
+    # *Arguments*
+    #   * arguments - list of command line option strings
+    #
+    # TODO AK: I still don't love that we have to rewrite ARGV to call
+    # applications within Ruby.  I would prefer it if passing a hash of
+    # arguments prevented the use of Getoptlong and the args hash was
+    # processed according to the configred switches.
+    # TODO AK: Can we rename this to "run_with_arguments"?
+    def self._run(*arguments)
+      # this ARGV hack is here for test specs to add script arguments
+      ARGV[0..-1] = arguments if arguments.length > 0
+      self.new._run
+    end
+
+    # Parse and return the provided log level, which can be an integer,
+    # string integer or string constant.  Returns all loging levels if value
+    # cannot be parsed.
+    #
+    # *Arguments*
+    #   * logger_level - log level to be parsed
+    #
+    # TODO AK: Declaring a class method with "self.method_name" after declaring
+    # "protected" doesn't change the method's visibility.  If has to be defined
+    # using "class << self".
+    def self.parse_log_level(logger_level)
+      if logger_level.is_a? Integer
+        logger_level_value = logger_level
+      elsif logger_level.is_a? String
+        if logger_level[0] =~ /[0-9]/
+          logger_level_value = logger_level.to_i
+        else
+          logger_level_value = logger_level.constantize rescue nil
+          logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
+        end
+      else
+        logger_level_value = Log4r::ALL
+      end
+      return logger_level_value
+    end
+
+    ### Instance Methods ###
+
+    # Run the application, fetching and parsing options from the command
+    # line.
+    #
+    # *Arguments*
+    #   * usage - string describing usage (optional)
+    #   * options - hash of options, containing ???
+    #
+    # TODO AK: Instead of prefixing this with an underscore, can't it just
+    # be protected? I assume the underscore indicates that it's not part of
+    # the public interface?
+    def _run(usage = nil, options = {})
+      @options = options
+      @usage = usage || "rails runner #{self.class.name}.run [OPTIONS]"
+
+      command_line_options(@options, @usage)
+
+      post_command_line_parsing
+
+      pre_work
+
+      return self
+    end
+
+    # Execute the actual work of the application upon execution.
+    #
+    # This method is used to wrap the actual run code with
+    # whatever specific code we are looking to maintain the
+    # execution context.
+    #
+    # one can imagine overlaoding this function with something
+    # call initiates a profiler or debugger
+    def _work
+      begin
+        work
+      rescue SystemExit
+        # we do nothing here
+      rescue Exception => e
+        # catching Exception cause some programs and libraries suck
+        logger.error "fatal error durring work: #{e.message}"
+        logger.fatal e
+        @has_errors = true
+        # TODO AK: Can't we just re-raise e and put the call to "exit" in
+        # an "ensure" block? Or does that not make a difference?
+      end
+
+      if @gc_profiler
+        logger("GC::Profiler").info GC::Profiler.result
+      end
+
+      exit @has_errors ? 1 : 0
+    end
+
+    # Accessor for the af name set on the instance's class.
+    #
+    # TODO AK: Where is "name" set? Does the subclass need to implement it?
+    def af_name
+      return self.class.name
+    end
+
+    # Returns the logger with the provided name, instantiating it if needed.
+    #
+    # *Arguments*
+    #   * logger_name - logger to return, defaults to ":default"
+    def logger(logger_name = :default)
+      # Coerce the logger_name if needed.
+      logger_name = af_name if logger_name == :default
+      # Check with Log4r to see if there is a logger by this name.
+      # If Log4r doesn't have a logger by this name, make one with Af defaults.
+      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
+    end
+
+    protected
 
     # TODO AK: What happens if this is called multiple times? It's not guarenteed
     # to only return the singleton object, right?
@@ -105,112 +240,10 @@ module Af
       return self.class.startup_database_application_name
     end
 
-    # Accessor for the af name set on the instance's class.
-    #
-    # TODO AK: Where is "name" set? Does the subclass need to implement it?
-    def af_name
-      return self.class.name
-    end
-
-    # Returns the logger with the provided name, instantiating it if needed.
-    #
-    # *Arguments*
-    #   * logger_name - logger to return, defaults to ":default"
-    def logger(logger_name = :default)
-      # Coerce the logger_name if needed.
-      logger_name = af_name if logger_name == :default
-      # Check with Log4r to see if there is a logger by this name.
-      # If Log4r doesn't have a logger by this name, make one with Af defaults.
-      return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
-    end
-
-    # Run this application with the provided arguments that must adhere to
-    # configured command line switches.  It rewrites ARGV with these values.
-    #
-    # *Example*
-    #   instance._run("-v", "--file", "foo.log")
-    #
-    # *Arguments*
-    #   * arguments - list of command line option strings
-    #
-    # TODO AK: I still don't love that we have to rewrite ARGV to call
-    # applications within Ruby.  I would prefer it if passing a hash of
-    # arguments prevented the use of Getoptlong and the args hash was
-    # processed according to the configred switches.
-    # TODO AK: Can we rename this to "run_with_arguments"?
-    def self._run(*arguments)
-      # this ARGV hack is here for test specs to add script arguments
-      ARGV[0..-1] = arguments if arguments.length > 0
-      self.new._run
-    end
-
-    # Run the application, fetching and parsing options from the command
-    # line.
-    #
-    # *Arguments*
-    #   * usage - string describing usage (optional)
-    #   * options - hash of options, containing ???
-    #
-    # TODO AK: Instead of prefixing this with an underscore, can't it just
-    # be protected? I assume the underscore indicates that it's not part of
-    # the public interface?
-    def _run(usage = nil, options = {})
-      @options = options
-      @usage = usage || "rails runner #{self.class.name}.run [OPTIONS]"
-
-      command_line_options(@options, @usage)
-
-      post_command_line_parsing
-
-      pre_work
-
-      return self
-    end
-
-    # Execute the actual work of the application upon execution.
-    #
-    # this method is used to wrap the actual run code with
-    # whatever specific code we are looking to maintain the
-    # execution context.
-    #
-    # one can imagine overlaoding this function with something
-    # call initiates a profiler or debugger
-    #
-    def _work
-      begin
-        work
-      rescue SystemExit
-        # we do nothing here
-      rescue Exception => e
-        # catching Exception cause some programs and libraries suck
-        logger.error "fatal error durring work: #{e.message}"
-        logger.fatal e
-        @has_errors = true
-        # TODO AK: Can't we just re-raise e and put the call to "exit" in
-        # an "ensure" block? Or does that not make a difference?
-      end
-
-      if @gc_profiler
-        logger("GC::Profiler").info GC::Profiler.result
-      end
-
-      exit @has_errors ? 1 : 0
-    end
-
+    # Work performed by this application.  MUST be implemented by subclasses.
     def work
       raise NotImplemented.new("#{self.class.name}#work must be implemented to use the Application framework")
     end
-
-    # Instantiate and run the application.
-    #
-    # *Arguments*
-    #   - arguments - ????
-    def self.run(*arguments)
-      application = self.new._run(*arguments)
-      application._work
-    end
-
-    protected
 
     # TODO AK: Is this like a method missing for option parsing?  Some
     # comments describing it's purpose would be helpful.
@@ -277,7 +310,7 @@ module Af
       end
 
       if @log_dump_configuration
-        puts "Log configuration search path:" 
+        puts "Log configuration search path:"
         puts " " + @log_configuration_search_path.join("\n ")
         puts "Log configuration files:"
         puts " " + @log_configuration_files.join("\n ")
@@ -328,32 +361,6 @@ module Af
 
     def cleanup_after_fork
       ActiveRecord::Base.connection.reconnect!
-    end
-
-    # Parse and return the provided log level, which can be an integer,
-    # string integer or string constant.  Returns all loging levels if value
-    # cannot be parsed.
-    #
-    # *Arguments*
-    #   * logger_level - log level to be parsed
-    #
-    # TODO AK: Declaring a class method with "self.method_name" after declaring
-    # "protected" doesn't change the method's visibility.  If has to be defined
-    # using "class << self".
-    def self.parse_log_level(logger_level)
-      if logger_level.is_a? Integer
-        logger_level_value = logger_level
-      elsif logger_level.is_a? String
-        if logger_level[0] =~ /[0-9]/
-          logger_level_value = logger_level.to_i
-        else
-          logger_level_value = logger_level.constantize rescue nil
-          logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
-        end
-      else
-        logger_level_value = Log4r::ALL
-      end
-      return logger_level_value
     end
 
     # Parses and sets the provided logger levels.
