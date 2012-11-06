@@ -168,6 +168,9 @@ module Af
     def _work
       begin
         work
+      rescue SIGTERM
+        # terminated by user request
+        @has_errors = true
       rescue SystemExit
         # we do nothing here
       rescue Exception => e
