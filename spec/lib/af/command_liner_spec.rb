@@ -16,11 +16,11 @@ describe Af::CommandLiner do
       }
   } }
 
-  it "returns application version" do
+  it "returns application version when #application_version is called" do
     subject.application_version.should == 5
   end
 
-  it "returns usage" do
+  it "returns usage instance variable" do
     subject.instance_variable_set(:@usage, command_line_usage)
 
     subject.usage.should == command_line_usage

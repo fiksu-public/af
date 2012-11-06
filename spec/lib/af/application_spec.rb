@@ -24,16 +24,16 @@ describe Af::Application do
 
   subject { MyScript.new }
 
-  it "returns connections name" do
+  it "returns connections name when #connection_application_name is called" do
     subject.set_connection_application_name("Application name")
     ActiveRecord::ConnectionAdapters::ConnectionPool.connection_application_name.should == "Application name"
   end
 
-  it "returns process PID and af name" do
+  it "returns process PID and af name when #startup_database_application_name is called" do
     subject.startup_database_application_name.should =~ /MyScript$/
   end
 
-  it "returns class name" do
+  it "returns class name when #af_name is called" do
     subject.af_name.should == "MyScript"
   end
 
@@ -46,7 +46,7 @@ describe Af::Application do
     subject.work
   end
 
-  it "exists with non-zero status when throws exception" do
+  it "exists from script with SystemExit exception" do
     lambda { ErrorScript.run }.should raise_error(SystemExit)
   end
 
@@ -61,5 +61,5 @@ describe Af::Application do
       error.status.should == 0
     }
   end
-
+  
 end # Af::Application
