@@ -168,10 +168,6 @@ module Af
     def _work
       begin
         work
-      rescue SIGTERM
-        # terminated by user request
-        logger.info "requested to terminate by SIGTERM"
-        @has_errors = true
       rescue SystemExit
         # we do nothing here
       rescue Exception => e
