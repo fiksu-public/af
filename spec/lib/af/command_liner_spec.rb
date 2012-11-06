@@ -42,29 +42,4 @@ describe Af::CommandLiner do
   it "returns update options" do
     subject.update_opts(:new_option, { :default => ["test"] }).should == { :default=>["test"] }
   end
-
-  it "returns @all_command_line_options_stores" do
-    subject.instance_variable_set(:@all_command_line_options_stores, options)
-
-    subject.all_command_line_options_stores.should == options
-  end
-
-  it "returns @command_line_options_store" do
-    Af::CommandLiner.instance_variable_set(:@command_line_options_store, options)
-
-    Af::CommandLiner.command_line_options_store.should == options
-  end
-
-  it "returns @all_command_line_option_groups_stores" do
-    subject.instance_variable_set(:@all_command_line_option_groups_stores, options)
-
-    subject.all_command_line_option_groups_stores.should == options
-  end
-
-  it "returns @command_line_option_groups_store" do
-    Af::CommandLiner.instance_variable_set(:@command_line_option_groups_store, options)
-
-    Af::CommandLiner.command_line_option_groups_store.should == options
-  end
-
 end # Af::CommandLiner
