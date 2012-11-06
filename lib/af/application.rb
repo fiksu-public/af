@@ -168,8 +168,13 @@ module Af
     def _work
       begin
         work
-      rescue SystemExit
+      rescue SystemExit => se
         # we do nothing here
+        if se.status != 0
+          logger.error "exit called with error: #{se.message}"
+          logger.fatal se
+          exit se.status
+        end
       rescue Exception => e
         # catching Exception cause some programs and libraries suck
         logger.error "fatal error durring work: #{e.message}"
