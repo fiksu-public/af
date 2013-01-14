@@ -27,4 +27,4 @@ end
 
 # run with:
 
-# rails runner path_to_this_file/script_with_options.rb
+# rails runner path_to_this_file/af_script_with_options.rb

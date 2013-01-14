@@ -332,7 +332,7 @@ module Af
     end
 
     # Convert an array into a single string, where each item consumes a static
-    # number of characters.  Long fields are trucated and small ones are padded.
+    # number of characters.  Long fields are truncated and small ones are padded.
     #
     # *Arguments*
     #   * fields - array of objects that respond to "to_s"

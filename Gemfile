@@ -11,6 +11,8 @@ gem 'log4r', '1.1.10'
 gem 'reasonable_log4r', '>= 0.9.0'
 gem 'uuid', '2.3.5'
 
+gem 'awesome_print'
+
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or
 # Git. Remember to move these dependencies to your gemspec before releasing
