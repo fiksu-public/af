@@ -176,7 +176,7 @@ module Af
       command_line_options_store[long_name][:no_accessor] = extras[:no_accessor] if extras[:no_accessor].present?
     end
 
-    # TODO AK: This doesn't seem to be used anywhere.  Maybe it can be removed?
+    # used by application code to note an error and exit
     def self.opt_error(text)
       puts text
       help(usage)
