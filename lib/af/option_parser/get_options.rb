@@ -1,6 +1,6 @@
 require 'getoptlong'
 
-module Af
+module Af::OptionParser
 
   # Subclasses Getoptlong from the Ruby standard library.
   # Docs: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/getoptlong/rdoc/GetoptLong.html.
@@ -32,7 +32,6 @@ module Af
 
       # Iterate through all of the switches.
       switches.each do |long_switch, parameters|
-
         # Set aside 
         if parameters[:environment_variable].present?
           @environment_variables[parameters[:environment_variable]] = long_switch
@@ -47,15 +46,14 @@ module Af
         end
         options << parameters[:argument]
         @getopt_options << options
-
       end
 
       # Add enviroment variables to the front of ARGV.
       argv_additions = []
       for environment_variable_name,value in @environment_variables do
         if ENV[environment_variable_name]
-        argv_additions << value
-        argv_additions << ENV[environment_variable_name] unless ENV[environment_variable_name].empty?
+          argv_additions << value
+          argv_additions << ENV[environment_variable_name] unless ENV[environment_variable_name].empty?
         end
       end
       for arg in ARGV do

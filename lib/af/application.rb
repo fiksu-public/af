@@ -28,7 +28,8 @@ module Af
   #   * option_handler
   #   * ??
   #
-  class Application < ::Af::CommandLiner
+  class Application
+    include Af::OptionParser
 
     ### Command Line Options ###
 
