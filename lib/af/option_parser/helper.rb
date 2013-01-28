@@ -5,8 +5,6 @@ module ::Af::OptionParser
 
     # Prints to stdout application usage and all command line options.
     def help(command_line_usage, show_hidden = false)
-      columnizer = Columnizer.new
-
       # Print usage.
       puts(command_line_usage)
 
@@ -79,7 +77,7 @@ module ::Af::OptionParser
                 rows << columns
               end
             end
-            output += columnizer.columnized(rows)
+            output += Columnizer.new.columnized(rows)
           end
         end
       end

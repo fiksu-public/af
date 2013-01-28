@@ -145,16 +145,10 @@ module Af
     # TODO AK: Instead of prefixing this with an underscore, can't it just
     # be protected? I assume the underscore indicates that it's not part of
     # the public interface?
-    def _run(usage = nil, options = {})
-      @options = options
-      @usage = usage || "rails runner #{self.class.name}.run [OPTIONS]"
-
-      command_line_options(@options, @usage)
-
+    def _run
+      process_command_line_options
       post_command_line_parsing
-
       pre_work
-
       return self
     end
 
