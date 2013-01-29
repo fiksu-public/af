@@ -2,7 +2,7 @@ module Af::OptionParser
   # Utility base class for executing Ruby scripts on the command line. Provides
   # methods to define, gather, parse and cast command line options. Options are
   # stored as class instance variables.
-  module UI
+  module Dsl
     ### Class methods ###
 
     # Declare a command line options group.
