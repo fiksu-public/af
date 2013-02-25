@@ -9,12 +9,12 @@ require 'af/option_parser/option_type.rb'
 require 'af/option_parser/process_command_line_options.rb'
 
 module Af::OptionParser
-  class MisconfiguredOptionError < ArgumentError; end
   include Interface
+
+  class MisconfiguredOptionError < ArgumentError; end
 
   def self.included(base)
     add_option_types
-    #base.send(:include, Interface)
     base.extend(Dsl)
   end
 

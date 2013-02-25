@@ -21,11 +21,11 @@ module ::Af::OptionParser
       @@types << self
     end
 
-    def evaluate_argument(argument)
+    def evaluate_argument(argument, option)
       if @evaluate_method.is_a? Symbol
         return argument.send(@evaluate_method)
       end
-      return @evaluate_method.call(argument)
+      return @evaluate_method.call(argument, option)
     end
 
     def handle?(value)

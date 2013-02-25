@@ -1,5 +1,6 @@
 require 'af/option_parser'
 require 'af/application'
+require 'af/application/component'
 require 'af/q_thread/interface'
 require 'af/q_thread/base'
 require 'af/q_thread/message'

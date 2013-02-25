@@ -428,51 +428,5 @@ module Af
         end
       end
     end
-
-    # Proxy's are used by dependant classes to reach back to the Application frame for
-    # some functionality.
-    #
-    # consider a model that wishes to use the logging functionality of Af:
-    #
-    #    class Foo < ActiveRecord::Base
-    #      include ::Af::Application::SafeProxy
-    #
-    #      after_create :do_something_after_create
-    #
-    #      def foo_logger
-    #        return af_logger(self.class.name)
-    #      end
-    #
-    #      private
-    #      def do_something_after_create
-    #        foo_logger.info "created: #{self.inspect}"
-    #      end
-    #    end
-    #
-    # The difference between Proxy and SafeProxy is simply that
-    # SafeProxy can be used in classes that may not be in an Af::Application
-    # run (ie, models that are shared with a Rails web app where Af::Application
-    # is never instantiated)
-    #
-    module Proxy
-      def af_logger(logger_name = (af_name || "Unknown"))
-        return ::Af::Application.singleton.logger(logger_name)
-      end
-
-      def af_name
-        return ::Af::Application.singleton.af_name
-      end
-    end
-
-    module SafeProxy
-      def af_logger(logger_name = (af_name || "Unknown"))
-        return ::Af::Application.singleton(true).logger(logger_name)
-      end
-
-      def af_name
-        return ::Af::Application.singleton(true).af_name
-      end
-    end
-
   end
 end

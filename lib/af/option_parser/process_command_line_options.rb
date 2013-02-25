@@ -51,20 +51,13 @@ module Af::OptionParser
           exit 1
         end
 
-        option.evaluate(argument)
-
         # Try to determine argument type and cast it.
-        argument = option.value_to_set_target_variable || argument
-        type_name = OptionType.find_by_value(option.value_to_set_target_variable).try(:short_name)
-        type_name = option[:type] unless option[:type].blank?
-        type_name = :string if type_name.nil? && option[:method].nil?
-        argument_value = self.class.evaluate_argument_for_type(argument, type_name, long_name, option)
-        # Argument converted, so call with proc and/or assign to instance variable.
-        if option[:method]
-          argument_value = option[:method].call(long_name, argument_value)
-        end
-        if option[:var]
-          self.instance_variable_set("@#{option[:var]}".to_sym, argument_value)
+        option_type = option.option_type
+        option_type = OptionType.find_by_value(option.value_to_set_target_variable) if option_type.nil?
+        option_type = OptionType.find_by_short_name(:string) if option_type.nil?
+        argument_value = option_type.evaluate_argument(option.value_to_set_target_variable || argument, option)
+        if option.target_variable
+          self.instance_variable_set("@#{option.target_variable}".to_sym, argument_value)
         end
       end
     end
