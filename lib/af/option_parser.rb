@@ -10,10 +10,11 @@ require 'af/option_parser/process_command_line_options.rb'
 
 module Af::OptionParser
   class MisconfiguredOptionError < ArgumentError; end
+  include Interface
 
   def self.included(base)
     add_option_types
-    base.send(:include, Interface)
+    #base.send(:include, Interface)
     base.extend(Dsl)
   end
 

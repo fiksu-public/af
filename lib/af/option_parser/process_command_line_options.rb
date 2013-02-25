@@ -33,10 +33,10 @@ module Af::OptionParser
       # is invalid, help or app version.  Otherwise, process and handle.
       get_options.each do |long_name,argument|
         if long_name == '--?'
-          help(options)
+          help
           exit 0
         elsif long_name == '--??'
-          help(options, true)
+          help(true)
           exit 0
         elsif long_name == '--application-version'
           puts application_version
@@ -47,7 +47,7 @@ module Af::OptionParser
 
         if option.nil?
           puts "unknown option: #{long_name}"
-          help(options)
+          help
           exit 1
         end
 
@@ -69,8 +69,8 @@ module Af::OptionParser
       end
     end
 
-    def help(options, show_hidden = false)
-      Helper.new(options).help(usage, show_hidden)
+    def help(show_hidden = false)
+      Helper.new.help(@usage, show_hidden)
     end
   end
 end

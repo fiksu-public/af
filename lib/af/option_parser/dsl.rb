@@ -18,6 +18,7 @@ module Af::OptionParser
       title = nil
       priority = nil
       description = nil
+      hidden = nil
 
       maybe_title = extra_stuff.shift
       if maybe_title.is_a? String
@@ -31,9 +32,10 @@ module Af::OptionParser
         title = maybe_hash[:title] if maybe_hash.has_key? :title
         priority = maybe_hash[:priority] if maybe_hash.has_key? :priority
         description = maybe_hash[:description] if maybe_hash.has_key? :description
+        hidden = maybe_hash[:hidden] if maybe_hash.has_key? :hidden
       end
 
-      OptionGroup.factory(group_name, title, priority, description)
+      OptionGroup.factory(group_name, title, priority, description, hidden)
     end
 
     # Declare a command line option switch.
