@@ -1,5 +1,4 @@
-require 'af/get_options'
-require 'af/command_liner'
+require 'af/option_parser'
 require 'af/application'
 require 'af/q_thread/interface'
 require 'af/q_thread/base'

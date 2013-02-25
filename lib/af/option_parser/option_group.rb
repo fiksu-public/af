@@ -22,7 +22,9 @@ module ::Af::OptionParser
     end
 
     def self.find(group_name)
-      return option_groups.find{|o| o.group_name == group_name}
+      return option_groups.find{|group_name_key,group_option_value|
+        group_option_value.group_name == group_name
+      }
     end
 
     def self.factory(group_name, title = nil, priority = nil, description = nil)

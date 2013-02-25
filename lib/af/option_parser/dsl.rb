@@ -119,16 +119,16 @@ module Af::OptionParser
 
       # Determine argument requirement type.
       argument = if extras[:argument] == :required
-                   ::Af::GetOptions::REQUIRED_ARGUMENT
+                   ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
                  elsif extras[:argument] == :none
-                   ::Af::GetOptions::NO_ARGUMENT
+                   ::Af::OptionParser::GetOptions::NO_ARGUMENT
                  elsif extras[:argument] == :optional
-                   ::Af::GetOptions::OPTIONAL_ARGUMENT
+                   ::Af::OptionParser::GetOptions::OPTIONAL_ARGUMENT
                  elsif extras[:argument] == nil
                    if extras[:type]
-                     ::Af::GetOptions::REQUIRED_ARGUMENT
+                     ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
                    else
-                     ::Af::GetOptions::NO_ARGUMENT
+                     ::Af::OptionParser::GetOptions::NO_ARGUMENT
                    end
                  else
                    extras[:argument]
@@ -144,9 +144,9 @@ module Af::OptionParser
 
       # Add the switch to the store, along with all of it's options.
       option_hash = {
-        :argument => argument
+        :requirements => argument
       }
-      option_hash = extras[:note] if extras[:note]
+      option_hash[:note] = extras[:note] if extras[:note]
       if extras[:short]
         short = extras[:short].to_s
         unless short[0] == '-'
@@ -159,7 +159,8 @@ module Af::OptionParser
       option_hash[:environment_variable] = extras[:env] if extras[:env]
       option_hash[:default_value] = extras[:default] if extras[:default]
       if extras[:type]
-        option_hash[:option_type] = OptionType.find_by_short_name(extras[:type]) || raise MisconfiguredOptionError("#{long_name}: option type '#{extra[:type]}' is not recognized.")
+        option_hash[:option_type] = OptionType.find_by_short_name(extras[:type])
+        raise MisconfiguredOptionError.new("#{long_name}: option type #{extras[:type].inspect} is not recognized. (valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless option_hash[:option_type]
       end
       option_hash[:target_variable] = extras[:var] if extras[:var]
       option_hash[:value_to_set_target_variable] = extras[:set] if extras[:set]
@@ -169,6 +170,7 @@ module Af::OptionParser
       option_hash[:hidden] = extras[:hidden] if extras[:hidden].present?
       option_hash[:choices] = extras[:choices] if extras[:choices].present?
       option_hash[:do_not_create_accessor] = extras[:no_accessor] if extras[:no_accessor].present?
+      option_hash[:long_name] = long_name
 
       Option.factory(option_hash[:long_name], option_hash[:short_name], option_hash[:option_type], option_hash[:requirements],
                      option_hash[:argument_note], option_hash[:note], option_hash[:environment_variable], option_hash[:default_value],
@@ -234,24 +236,11 @@ module Af::OptionParser
         end
         return choice_list
       else
-        if argument_availability == ::Af::GetOptions::REQUIRED_ARGUMENT
+        if argument_availability == ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
           argument = true
         end
         return argument
       end
     end
-
-    # A number of default command line switches and switch groups available to all
-    # subclasses.
-    opt '?', "show this help (--?? for all)", :short => '?', :group => :basic
-    opt '??', "show help for all commands", :group => :basic, :hidden => true
-    opt :application_version, "application version", :short => :V, :group => :basic
-
-    opt_group :basic, "basic options", :priority => 0, :description => <<-DESCRIPTION
-      These are the stanadard options offered to all Af commands.
-    DESCRIPTION
-    opt_group :advanced, "advanced options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
-      These are advanced options offered to this programs.
-    DESCRIPTION
   end
 end

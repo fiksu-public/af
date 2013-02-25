@@ -23,25 +23,25 @@ module Af::OptionParser
     #         :argument => <constant arg type>
     #         :environment_variable => <how do these work???>
     #         :note => <arg description>
-    def initialize(switches = {})
-      environment_variables = {} # switches that are set in the ENV
+    def initialize(declared_options = {})
+      environment_variables = {} # options that are set in the ENV
       getopt_options = []
 
-      # Iterate through all of the switches.
-      switches.each do |long_switch, parameters|
+      # Iterate through all of the options.
+      declared_options.each do |long_switch, option|
         # Set aside 
-        if parameters[:environment_variable].present?
-          environment_variables[parameters[:environment_variable]] = long_switch
+        if option.environment_variable.present?
+          environment_variables[option.environment_variable] = long_switch
         end
 
         # Convert hash into array, in format expected by Getoptlong#new.
         # Example: ['--foo', '-f', 'bar']
         options = []
         options << long_switch
-        if (parameters[:short])
-          options << parameters[:short]
+        if (option.short_name)
+          options << option.short_name
         end
-        options << parameters[:argument]
+        options << option.requirements
         getopt_options << options
       end
 

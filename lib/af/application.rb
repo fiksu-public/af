@@ -33,6 +33,19 @@ module Af
 
     ### Command Line Options ###
 
+    # A number of default command line switches and switch groups available to all
+    # subclasses.
+    opt '?', "show this help (--?? for all)", :short => '?', :group => :basic
+    opt '??', "show help for all commands", :group => :basic, :hidden => true
+    opt :application_version, "application version", :short => :V, :group => :basic
+
+    opt_group :basic, "basic options", :priority => 0, :description => <<-DESCRIPTION
+      These are the stanadard options offered to all Af commands.
+    DESCRIPTION
+    opt_group :advanced, "advanced options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
+      These are advanced options offered to this programs.
+    DESCRIPTION
+
     opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
@@ -215,10 +228,10 @@ module Af
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true
       $stderr.sync = true
-      update_opts :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
-      update_opts :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
-      update_opts :log_stdout, :default => Rails.root + "log/runner.log"
-      update_opts :log_stderr, :default => Rails.root + "log/runner-errors.log"
+      opt_update :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
+      opt_update :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
+      opt_update :log_stdout, :default => Rails.root + "log/runner.log"
+      opt_update :log_stderr, :default => Rails.root + "log/runner-errors.log"
     end
 
     # Set the application name on the ActiveRecord connection. It is

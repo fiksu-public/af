@@ -1,6 +1,8 @@
 module ::Af::OptionParser
   class Helper
-    def initialize(grouped_commands, commands)
+    def initialize(options)
+      @options = options
+      @grouped_options = options.group_by{|option| option.option_group_name || :basic}
     end
 
     # Prints to stdout application usage and all command line options.
@@ -8,27 +10,15 @@ module ::Af::OptionParser
       # Print usage.
       puts(command_line_usage)
 
-      # Fetch all command line options stores (grouped and not).
-      grouped_commands = all_command_line_option_groups_stores
-      commands = all_command_line_options_stores
-
-      # Add non-grouped options to grouped as "basic".
-      commands.each do |long_switch,configuration|
-        group_name = (configuration[:group] || :basic)
-        grouped_commands[group_name] ||= {}
-        grouped_commands[group_name][:commands] ||= []
-        grouped_commands[group_name][:commands] << long_switch
-      end
-
       # Array of strings to be printed to stdout.
       output = []
 
       # Iterate through all command groups  sorted by priority.
-      grouped_commands.keys.sort{|a,b| (grouped_commands[a][:priority] || 50) <=> (grouped_commands[b][:priority] || 50)}.each do |group_name|
-        grouped_command = grouped_commands[group_name]
-
-        unless grouped_command[:commands].blank?
-          if grouped_command[:hidden] == true && show_hidden == false
+      @grouped_options.keys.sort{|a,b| (@grouped_options[a].priority || 50) <=> (@grouped_options[b].priority || 50)}.each do |group_name|
+        grouped_option = @grouped_options[group_name]
+        group = OptionGroup.find(group_name)
+        unless @grouped_options[:commands].blank?
+          if group.hidden == true && show_hidden == false
             # skipping hidden groups
           else
             output << "#{group_name}: " + grouped_command[:title]

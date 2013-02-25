@@ -8,7 +8,10 @@ module Af::OptionParser
     def process
       # Iterate through all options in the class heirachy.
       # Create instance variables and accessor methods for each.
-      Option.all_options.each do |long_name,option|
+
+      options = Option.all_options
+
+      options.each do |long_name,option|
         unless option.target_variable
           var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
           option.target_variable = var_name
@@ -24,16 +27,16 @@ module Af::OptionParser
       end
 
       # Fetch the actual switches (and values) from the command line.
-      get_options = GetOptions.new(Option.all_options)
+      get_options = GetOptions.new(options)
 
       # Iterate through the command line options. Print and exit if the switch
       # is invalid, help or app version.  Otherwise, process and handle.
       get_options.each do |long_name,argument|
         if long_name == '--?'
-          help
+          help(options)
           exit 0
         elsif long_name == '--??'
-          help(true)
+          help(options, true)
           exit 0
         elsif long_name == '--application-version'
           puts application_version
@@ -44,7 +47,7 @@ module Af::OptionParser
 
         if option.nil?
           puts "unknown option: #{long_name}"
-          help
+          help(options)
           exit 1
         end
 
@@ -66,8 +69,8 @@ module Af::OptionParser
       end
     end
 
-    def help(show_hidden = false)
-      Helper.new.help(usage, show_hidden)
+    def help(options, show_hidden = false)
+      Helper.new(options).help(usage, show_hidden)
     end
   end
 end
