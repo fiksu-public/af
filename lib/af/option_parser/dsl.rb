@@ -172,77 +172,14 @@ module Af::OptionParser
       option_hash[:hidden] = extras[:hidden] if extras[:hidden].present?
       option_hash[:choices] = extras[:choices] if extras[:choices].present?
       option_hash[:do_not_create_accessor] = extras[:no_accessor] if extras[:no_accessor].present?
+      option_hash[:target_container] = extras[:target_container] if extras[:target_container].present?
       option_hash[:long_name] = long_name
 
       Option.factory(option_hash[:long_name], option_hash[:short_name], option_hash[:option_type], option_hash[:requirements],
                      option_hash[:argument_note], option_hash[:note], option_hash[:environment_variable], option_hash[:default_value],
                      option_hash[:target_variable], option_hash[:value_to_set_target_variable], option_hash[:evaluation_method],
-                     option_hash[:option_group_name], option_hash[:hidden], option_hash[:choices], option_hash[:do_not_create_accessor])
-    end
-
-    # Convert or process the provided argument value based on the provided type.
-    #
-    # *Arguments*
-    #   * argument - the value to be processed
-    #   * type_name - the argument's type
-    #   * option_name - name of argument option (only used for logging)
-    #   * command_line_options - options hash for the given option_name
-    def self.evaluate_argument_for_type(argument, type_name, option_name, command_line_option)
-      argument_availability = command_line_option[:argument]
-      choices = command_line_option[:choices]
-
-      if type_name == :int
-        return argument.to_i
-      elsif type_name == :float
-        return argument.to_f
-      elsif type_name == :string
-        return argument.to_s
-      elsif type_name == :uri
-        return URI.parse(argument)
-      elsif type_name == :date
-        return Time.zone.parse(argument).to_date
-      elsif type_name == :time
-        return Time.zone.parse(argument)
-      elsif type_name == :choice
-        choice = argument.to_sym
-        unless choices.blank?
-          unless choices.include? choice
-            puts "#{self.name}: #{option_name}: invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}"
-            exit 0
-          end
-        end
-        return choice
-      elsif type_name == :hash
-        return Hash[argument.split(',').map{|a| a.split('=')}]
-      elsif type_name == :ints
-        return argument.split(',').map(&:to_i)
-      elsif type_name == :floats
-        return argument.split(',').map(&:to_f)
-      elsif type_name == :strings
-        return argument.split(',').map(&:to_s)
-      elsif type_name == :uris
-        return argument.split(',').map{|a| URI.parse(a)}
-      elsif type_name == :dates
-        return argument.split(',').map{|a| Time.zone.parse(a).to_date}
-      elsif type_name == :times
-        return argument.split(',').map{|a| Time.zone.parse(a)}
-      elsif type_name == :choices
-        choice_list = argument.split(',').map(&:to_sym)
-        unless choices.blank?
-          choice_list.each do |choice|
-            unless choices.include? choice
-              puts "#{self.name}: #{option_name}: invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}"
-              exit 0
-            end
-          end
-        end
-        return choice_list
-      else
-        if argument_availability == ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
-          argument = true
-        end
-        return argument
-      end
+                     option_hash[:option_group_name], option_hash[:hidden], option_hash[:choices], option_hash[:do_not_create_accessor],
+                     option_hash[:target_container])
     end
   end
 end

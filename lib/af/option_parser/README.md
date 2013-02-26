@@ -21,3 +21,12 @@ opt_group :foogroupname do
   opt :foo
   opt :bar
 end
+
+handle switches better:
+ --foo --no-foo or something
+
+fix the factories so they don't look like C code
+
+opt_group :debug_server, {:title => "the debug server", :container => ::Logical::DebugServer} do
+  opt :foo
+end

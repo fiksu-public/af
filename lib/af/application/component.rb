@@ -55,6 +55,10 @@ module Af
       def af_name
         return ::Af::Application.singleton.af_name
       end
+
+      def af_application
+        return ::Af::Application.singleton.af_name
+      end
     end
 
     # just remove this and make the initial component safe
