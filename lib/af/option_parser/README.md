@@ -16,3 +16,8 @@ needs: opt_banner -- to set the banner
 needs: opt_env -- set an environment variable without a switch
 
 replace Getoptlong
+
+opt_group :foogroupname do
+  opt :foo
+  opt :bar
+end
