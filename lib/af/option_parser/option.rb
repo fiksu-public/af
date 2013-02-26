@@ -1,7 +1,9 @@
 module ::Af::OptionParser
   class Option
     attr_accessor :option_type, :requirements, :short_name, :long_name, :argument_note, :note, :environment_variable
-    attr_accessor :default_value, :target_variable, :set, :evaluation_method, :option_group_name, :hidden, :choices, :do_not_create_accessor
+    attr_accessor :default_value, :set, :evaluation_method, :option_group_name, :hidden, :choices
+    attr_accessor :value_to_set_target_variable, :do_not_create_accessor
+    attr_writer :target_variable
 
     @@options = {}
 
@@ -35,6 +37,21 @@ module ::Af::OptionParser
       @@options[long_name] = self
     end
 
+    def evaluate(argument_value)
+      evaluator = @option_type ||
+        OptionType.find_by_value(@value_to_set_target_variable) ||
+        OptionType.find_by_short_name(:string)
+      raise UndeterminedArgumentTypeError.new(@long_name) unless evaluator
+      return evaluator.evaluate_argument(@value_to_set_target_variable || argument_value, self)
+    end
+
+    def target_variable
+      unless @target_variable
+        @target_variable = @long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
+      end
+      return @target_variable
+    end
+
     def self.find(long_name)
       return all_options[long_name]
     end
@@ -50,14 +67,14 @@ module ::Af::OptionParser
       option.argument_note = argument_note if argument_note
       option.note = note if note
       option.environment_variable = environment_variable if environment_variable
-      option.default_value = default_value if default_value
+      option.default_value = default_value if default_value.present?
       option.target_variable = target_variable if target_variable
-      option.value_to_set_target_variable = value_to_set_target_variable if value_to_set_target_variable
+      option.value_to_set_target_variable = value_to_set_target_variable if value_to_set_target_variable.present?
       option.evaluation_method = evaluation_method if evaluation_method
       option.option_group_name = option_group_name if option_group_name
-      option.hidden = hidden if hidden
+      option.hidden = hidden if hidden.present?
       option.choices = choices if choices
-      option.do_not_create_accessor = do_not_create_accessor if do_not_create_accessor
+      option.do_not_create_accessor = do_not_create_accessor if do_not_create_accessor.present?
       return option
     end
   end

@@ -12,6 +12,8 @@ module Af::OptionParser
   include Interface
 
   class MisconfiguredOptionError < ArgumentError; end
+  class BadChoiceError < ArgumentError; end
+  class UndeterminedArgumentTypeError < ArgumentError; end
 
   def self.included(base)
     add_option_types
@@ -33,7 +35,7 @@ module Af::OptionParser
                      choices = option_parser.choices
                      unless choices.blank?
                        unless choices.include? choice
-                         raise BadChoice.new("invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}")
+                         raise BadChoiceError.new("invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}")
                        end
                      end
                      return choice
@@ -54,7 +56,7 @@ module Af::OptionParser
                      unless choices.blank?
                        choice_list.each do |choice|
                          unless choices.include? choice
-                           raise BadChoice.new("invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}")
+                           raise BadChoiceError.new("invalid choice '#{choice}' not in list of choices: #{choices.map(&:to_s).join(', ')}")
                          end
                        end
                      end

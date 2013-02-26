@@ -10,18 +10,13 @@ module Af::OptionParser
       # Create instance variables and accessor methods for each.
 
       options = Option.all_options
-
       options.each do |long_name,option|
-        unless option.target_variable
-          var_name = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
-          option.target_variable = var_name
-        end
         if option.target_variable
-          if option.default_value.present? || !self.instance_variable_defined?("@#{option.target_variable}".to_sym)
-            self.instance_variable_set("@#{option.target_variable}".to_sym, option.default_value)
+          if option.default_value.present? || !@application.instance_variable_defined?("@#{option.target_variable}".to_sym)
+            @application.instance_variable_set("@#{option.target_variable}".to_sym, option.default_value)
           end
           unless option.do_not_create_accessor
-            eval("class << self; attr_accessor :#{option.target_variable}; end")
+            @application.class.class_eval "attr_accessor :#{option.target_variable}"
           end
         end
       end
@@ -51,13 +46,9 @@ module Af::OptionParser
           exit 1
         end
 
-        # Try to determine argument type and cast it.
-        option_type = option.option_type
-        option_type = OptionType.find_by_value(option.value_to_set_target_variable) if option_type.nil?
-        option_type = OptionType.find_by_short_name(:string) if option_type.nil?
-        argument_value = option_type.evaluate_argument(option.value_to_set_target_variable || argument, option)
+        argument_value = option.evaluate(argument)
         if option.target_variable
-          self.instance_variable_set("@#{option.target_variable}".to_sym, argument_value)
+          @application.instance_variable_set("@#{option.target_variable}".to_sym, argument_value)
         end
       end
     end
