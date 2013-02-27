@@ -1,6 +1,8 @@
 module ::Af::OptionParser
   class OptionGroup
-    attr_accessor :group_name, :title, :priority, :description, :hidden
+    FACTORY_SETTABLES = [:title, :priority, :description, :hidden]
+    attr_accessor *FACTORY_SETTABLES
+    attr_accessor :group_name
 
     @@option_groups = {}
 
@@ -8,32 +10,27 @@ module ::Af::OptionParser
       return @@option_groups
     end
 
-    def initialize(group_name, title = nil, description = nil, priority = nil, hidden = nil)
+    def initialize(group_name, parameters = {})
       @group_name = group_name
-      @title = title
-      @description = description
-      @priority = priority
-      @hidden = hidden
-      @options = Set.new
+      set_instance_variables(parameters)
       @@option_groups[group_name] = self
     end
 
-    def add_options(option_long_name)
-      @options << option_name.to_s
-    end
-
     def self.find(group_name)
-      return option_groups.find{|group_name_key,group_option_value|
-        group_option_value.group_name == group_name
-      }
+      return option_groups[group_name]
     end
 
-    def self.factory(group_name, title = nil, priority = nil, description = nil, hidden = nil)
+    def set_instance_variables(parameters = {})
+      parameters.select do |name,value|
+        FACTORY_SETTABLES.include? name
+      end.each do |name,value|
+        instance_variable_set("@{name}", value)
+      end
+    end
+
+    def self.factory(group_name, factory_hash = {})
       option_group = find(group_name) || new(group_name)
-      option_group.title = title if title
-      option_group.priority = priority if priority
-      option_group.description = description if description
-      option_group.hidden = hidden if hidden.present?
+      option_group.set_instance_variables(factory_hash)
       return option_group
     end
   end

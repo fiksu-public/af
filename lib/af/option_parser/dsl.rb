@@ -5,37 +5,54 @@ module Af::OptionParser
   module Dsl
     ### Class methods ###
 
+    @@opt_group_stack = []
+    def opt_get_top_of_stack
+      return (@@opt_group_stack[-1] || {}).clone
+    end
+
     # Declare a command line options group.
     #
     # *Arguments*
     #   * group_name - name of the group
     #   * extra_stuff (Hash)
-    #     * :title - title of the group (optional)
-    #     * :description -
-    #     * :priority -
-    #
-    def opt_group(group_name, *extra_stuff)
-      title = nil
-      priority = nil
-      description = nil
-      hidden = nil
+    #     * :title - display title of the group (optional)
+    #     * :description - details about group
+    #     * :priority - order to show groups in help --?
+    #     * :hidden - true if this group's options should only be seen with --?
+    #     *  anything else in this hash can be passed to yield block as defaults for other opt/opt_group invocations
+    #   * yeilds to block if given with extra_stuff in a global space that opt/opt_group calls use as defaults
 
+    def opt_group(group_name, *extra_stuff)
+      # grab information from our yied scope
+      factory_hash = opt_get_top_of_stack
+
+      # update factory_hash with information in array area first (left parameters of the dsl)
       maybe_title = extra_stuff.shift
       if maybe_title.is_a? String
-        title = maybe_title
+        factory_hash[:title] = maybe_title
       else
         extra_stuff.shift(maybe_title)
       end
 
+      # then fold in the hash
       maybe_hash = extra_stuff[-1]
       if maybe_hash.is_a? Hash
-        title = maybe_hash[:title] if maybe_hash.has_key? :title
-        priority = maybe_hash[:priority] if maybe_hash.has_key? :priority
-        description = maybe_hash[:description] if maybe_hash.has_key? :description
-        hidden = maybe_hash[:hidden] if maybe_hash.has_key? :hidden
+        factory_hash.merge! maybe_hash
       end
 
-      OptionGroup.factory(group_name, title, priority, description, hidden)
+      OptionGroup.factory(group_name, factory_hash)
+      # if a block is given, then let the yeilded block 
+      # have access to our scoped hash.  This could be factory_hash
+      # I chose just the hash that is passed in (extra_stuff) instead
+      # because it is more explicit what is passed to child scopes
+      if block_given?
+        begin
+          @@opt_group_stack.push extra_stuff
+          yield
+        ensure
+          @@opt_group_stack.pop
+        end
+      end
     end
 
     # Declare a command line option switch.
@@ -43,38 +60,37 @@ module Af::OptionParser
     # *Arguments*
     #   * long_name - long version of the switch
     #   * extra_stuff - hash with the following possible keys:
-    #     :var => <instance variable name>
-    #     :default => <default value>
-    #     :no_accessor => <false to skip setting accessor>
-    #     :set => <???>
-    #     :type => <type to cast option value??>
-    #     :method => <lambda or proc to process value??>
-    #     :hidden => <???>
-    #     :group => <name of group?>
-    #     :priority => <integer??>
-    #     :argument => <arg type: required, none, optional>
-    #     :choices => <???>
-    #     :environment_variable => <???>
-    #     :argument_note => <???>
+    #     :type - (:option_type) the OptionType
+    #     :argument - (:requirements) is a parameter value requied (valid values: :required, :optional, :none)
+    #     :short - (:short_name) the single letter used for this option (i.e., :e = '-e')
+    #     :argument_note - used in --? as the typename of the parameter (e.g. ENGLISH_WORD)
+    #     :note - used in --? as the help text
+    #     :environment_variable - the name of the environment variable associated with this switch
+    #     :default - (:default_value) the default value of the parameter
+    #     :method - (:evaluation_method) called to evaluate argument: lambda{|argument,option| ... }
+    #     :group - (:option_group_name) name of group
+    #     :hidden - should option only be shown in --?
+    #     :choices - array of valid choices, e.g: [:blue, :green, :red]
+    #     :set - (:value_to_set_target_variable) value to set if option specified (use for switches where --blue means set @color = 'blue')
+    #     :no_accessor - (:do_not_create_accessor) don't class_eval 'attr_accessor :#{target_variable}'
+    #     :var - (:target_variable) name of instance variable to set
+    #     :target_container - name of object to set instance value
     #
-    # if block is passed without long_name, then block is simply yeilded to
-    #  (this is used to group options visually)
-    # if block is otherwised passed it is called with OPTION,ARGUMENT_VALUE when seen on the command line
+    # if block is passed it is used as :method
     #
-    def opt(long_name = nil, *extra_stuff, &b)
-      if b && long_name.nil?
-        yield
-        return
-      end
+    def opt(long_name, *extra_stuff, &b)
+      factory_hash = opt_get_top_of_stack
 
-      if long_name.nil?
-        raise MisconfiguredOptionError.new("no name given for option")
+      # Ensure long name is in the proper string format.
+      long_name = long_name.to_s
+      unless long_name.starts_with? "--"
+        long_name = "--#{long_name.gsub(/_/,'-')}"
       end
 
       # Create hash for processed options.
-      extras = extra_stuff[-1]
-      if extras.is_a? Hash
-        # if extras is a Hash, then the rest of extra_stuff is an array, which
+      maybe_hash = extra_stuff[-1]
+      if maybe_hash.is_a? Hash
+        # if maybe_hash is a Hash, then the rest of extra_stuff is an array, which
         # is expected to be:
         #   NOTE (String)
         # or:
@@ -82,104 +98,96 @@ module Af::OptionParser
         # or:
         #   REQUIREMENT (Symbol)
         extra_stuff.pop
-      else
-        extras = {}
+        factory_hash.merge! maybe_hash
       end
 
       # Iterate through and process all of the other arguments.
       while extra_stuff.length > 0
         extra = extra_stuff.shift
-        if extra.is_a?(Symbol)
-          if [:required, :optional, :none].include?(extra)
-            extras[:argument] = extra
-          elsif Option.all_option_types.include?(extra)
-            extras[:type] = extra
+        if extra.is_a? Symbol
+          if [:required, :optional, :none].include? extra
+            factory_hash[:argument] = extra
+          elsif Option.all_option_types.include? extra
+            factory_hash[:type] = extra
           else
             raise MisconfiguredOptionError.new("#{long_name}: extra options: #{extra.inspect} are not understood")
           end
-        elsif extra.is_a?(String)
-          extras[:note] = extra
+        elsif extra.is_a? String
+          factory_hash[:note] = extra
         else
           raise MisconfiguredOptionError.new("#{long_name}: extra options: #{extra.inspect} are not understood")
         end
       end
 
-      # Ensure long name is in the proper string format.
-      long_name = long_name.to_s
-      unless long_name[0..1] == "--"
-        long_name = "--#{long_name.gsub(/_/,'-')}"
-      end
-
-      unless extras[:type]
+      unless factory_hash[:type]
         # If we are not just setting a switch, then we can use the default value
         # and assume this switch has a required argument.
-        if extras[:default].present? && extras[:set].nil?
-          type = OptionType.find_by_value(extras[:default]).try(:short_name)
-          extras[:type] = type unless type.nil?
+        if factory_hash[:default].present? && factory_hash[:set].nil?
+          type = OptionType.find_by_value(factory_hash[:default]).try(:short_name)
+          factory_hash[:type] = type unless type.nil?
         end
       end
 
       # Determine argument requirement type.
-      argument = if extras[:argument] == :required
-                   ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
-                 elsif extras[:argument] == :none
-                   ::Af::OptionParser::GetOptions::NO_ARGUMENT
-                 elsif extras[:argument] == :optional
-                   ::Af::OptionParser::GetOptions::OPTIONAL_ARGUMENT
-                 elsif extras[:argument] == nil
-                   if extras[:type]
-                     ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
-                   else
-                     ::Af::OptionParser::GetOptions::NO_ARGUMENT
-                   end
-                 else
-                   extras[:argument]
-                 end
+      factory_hash[:argument] = if factory_hash[:argument] == :required
+                                  ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
+                                elsif factory_hash[:argument] == :none
+                                  ::Af::OptionParser::GetOptions::NO_ARGUMENT
+                                elsif factory_hash[:argument] == :optional
+                                  ::Af::OptionParser::GetOptions::OPTIONAL_ARGUMENT
+                                elsif factory_hash[:argument] == nil
+                                  if factory_hash[:type]
+                                    ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
+                                  else
+                                    ::Af::OptionParser::GetOptions::NO_ARGUMENT
+                                  end
+                                else
+                                  factory_hash[:argument]
+                                end
 
       # Determine argument type if it is not explictly given
-      unless extras[:type]
-        if extras[:set]
-          type = OptionType.find_by_value(extras[:set]).try(:short_name)
-          extras[:type] = type unless type.nil?
+      unless factory_hash[:type]
+        if factory_hash[:set]
+          type = OptionType.find_by_value(factory_hash[:set]).try(:short_name)
+          factory_hash[:type] = type unless type.nil?
         end
       end
 
       # Add the switch to the store, along with all of it's options.
-      option_hash = {
-        :requirements => argument
-      }
-      option_hash[:note] = extras[:note] if extras[:note]
-      if extras[:short]
-        short = extras[:short].to_s
+      if factory_hash[:short]
+        short = factory_hash[:short].to_s
         unless short[0] == '-'
           short = "-#{short}"
         end
-        option_hash[:short] = short
+        factory_hash[:short] = short
       end
-      option_hash[:argument_note] = extras[:argument_note] if extras[:argument_note]
-      option_hash[:environment_variable] = extras[:environment_variable] if extras[:environment_variable]
-      option_hash[:environment_variable] = extras[:env] if extras[:env]
-      option_hash[:default_value] = extras[:default] if extras[:default]
-      if extras[:type]
-        option_hash[:option_type] = OptionType.find_by_short_name(extras[:type])
-        raise MisconfiguredOptionError.new("#{long_name}: option type #{extras[:type].inspect} is not recognized. (valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless option_hash[:option_type]
-      end
-      option_hash[:target_variable] = extras[:var] if extras[:var]
-      option_hash[:value_to_set_target_variable] = extras[:set] if extras[:set]
-      option_hash[:evaluation_method] = extras[:method] if extras[:method]
-      option_hash[:evaluation_method] = b if b
-      option_hash[:option_group_name] = extras[:group] if extras[:group].present?
-      option_hash[:hidden] = extras[:hidden] if extras[:hidden].present?
-      option_hash[:choices] = extras[:choices] if extras[:choices].present?
-      option_hash[:do_not_create_accessor] = extras[:no_accessor] if extras[:no_accessor].present?
-      option_hash[:target_container] = extras[:target_container] if extras[:target_container].present?
-      option_hash[:long_name] = long_name
 
-      Option.factory(option_hash[:long_name], option_hash[:short_name], option_hash[:option_type], option_hash[:requirements],
-                     option_hash[:argument_note], option_hash[:note], option_hash[:environment_variable], option_hash[:default_value],
-                     option_hash[:target_variable], option_hash[:value_to_set_target_variable], option_hash[:evaluation_method],
-                     option_hash[:option_group_name], option_hash[:hidden], option_hash[:choices], option_hash[:do_not_create_accessor],
-                     option_hash[:target_container])
+      if factory_hash[:type]
+        factory_hash[:type] = OptionType.find_by_short_name(factory_hash[:type])
+        raise MisconfiguredOptionError.new("#{long_name}: option type #{factory_hash[:type].inspect} is not recognized. (valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless factory_hash[:type]
+      end
+
+      factory_hash[:method] = b if b
+
+      # rename keys in factory hash from the UI names to the API names
+
+      {
+        :default => :default_value,
+        :type => :option_type,
+        :var => :target_variable,
+        :set => :value_to_set_target_variable,
+        :no_accessor => :do_not_create_accessor,
+        :group => :option_group_name,
+        :short => :short_name,
+        :method => :evaluation_method,
+        :argument => :requirements
+      }.each do |current_key_name,new_key_name|
+        if factory_hash.hash_key? current_key_name
+          factory_hash[new_key_name] = factory_hash.delete(current_key_name)
+        end
+      end
+
+      Option.factory(long_name, factory_hash)
     end
   end
 end

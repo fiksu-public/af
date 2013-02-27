@@ -30,3 +30,7 @@ fix the factories so they don't look like C code
 opt_group :debug_server, {:title => "the debug server", :container => ::Logical::DebugServer} do
   opt :foo
 end
+
+option type :readfile, :createfile, :appendfile, readwritefile
+
+opt_switch

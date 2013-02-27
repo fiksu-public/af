@@ -35,13 +35,27 @@ module Af
 
     # A number of default command line switches and switch groups available to all
     # subclasses.
-    opt '?', "show this help (--?? for all)", :short => '?', :group => :basic
-    opt '??', "show help for all commands", :group => :basic, :hidden => true
-    opt :application_version, "application version", :short => :V, :group => :basic
 
     opt_group :basic, "basic options", :priority => 0, :description => <<-DESCRIPTION
       These are the stanadard options offered to all Af commands.
     DESCRIPTION
+
+    opt_group :basic do
+      opt '?', "show this help (--?? for all)", :short => '?' do
+        Helper.new.help(::Af::Application.singleton.usage)
+        exit 0
+      end
+      opt '??', "show help for all commands", :hidden => true do
+        Helper.new.help(::Af::Application.singleton.usage, true)
+        exit 0
+      end
+      opt :application_version, "application version", :short => :V do
+        puts Af::Application.singleton.application_version
+        exit 0
+      end
+      opt :daemon, "run as daemon", :short => :d
+    end
+
     opt_group :advanced, "advanced options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
       These are advanced options offered to this programs.
     DESCRIPTION
@@ -50,23 +64,27 @@ module Af
       These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
     DESCRIPTION
+    
+    opt_group :logging do
+      opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"]
+      opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."]
+      opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES'
+      opt :log_dump_configuration, "show the log4r configuration"
+      opt :log_levels, "set log levels", :type => :hash
+      opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string
+      opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string
+      opt :log_console, "force logging to console"
+    end
 
     opt_group :debugging, "debugging options", :priority => 1000, :hidden => true, :description => <<-DESCRIPTION
       These are options associated with debugging the internal workings of the Af::Application sysyem and ruby
       in general.
     DESCRIPTION
 
-    opt :daemon, "run as daemon", :short => :d
-    opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"], :group => :logging
-    opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."], :group => :logging
-    opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES', :group => :logging
-    opt :log_dump_configuration, "show the log4r configuration", :group => :logging
-    opt :log_levels, "set log levels", :type => :hash, :group => :logging
-    opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string, :group => :logging
-    opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string, :group => :logging
-    opt :log_console, "force logging to console", :group => :logging
-    opt :gc_profiler, "enable the gc profiler", :group => :debugging
-    opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES", :group => :debugging
+    opt_group :debugging do
+      opt :gc_profiler, "enable the gc profiler"
+      opt :gc_profiler_interval_minutes, "number of minutes between dumping gc information", :default => 60, :argument_note => "MINUTES"
+    end
 
     ### Attributes ###
 

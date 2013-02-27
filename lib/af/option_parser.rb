@@ -21,7 +21,6 @@ module Af::OptionParser
   end
 
   def self.add_option_types
-    return if OptionType.types.length > 0
     OptionType.new(:Int, :int, "INTEGER", :to_i, Fixnum)
     OptionType.new(:Integer, :integer, "INTEGER", :to_i, Fixnum)
     OptionType.new(:Float, :float, "NUMBER", :to_f, Float)
