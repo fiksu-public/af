@@ -84,6 +84,7 @@ module Af::OptionParser
       unless long_name.starts_with? "--"
         long_name = "--#{long_name.gsub(/_/,'-')}"
       end
+      factory_hash[:var] = long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
 
       # Create hash for processed options.
       maybe_hash = extra_stuff[-1]

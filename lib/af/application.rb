@@ -37,11 +37,11 @@ module Af
     DESCRIPTION
 
     opt_group :basic do
-      opt '?', "show this help (--?? for all)", :short => '?', :no_accessor => true do
+      opt '?', "show this help (--?? for all)", :short => '?', :var => nil do
         Helper.new.help(::Af::Application.singleton.usage)
         exit 0
       end
-      opt '??', "show help for all commands", :hidden => true, :no_accessor => true do
+      opt '??', "show help for all commands", :hidden => true, :var => nil do
         Helper.new.help(::Af::Application.singleton.usage, true)
         exit 0
       end

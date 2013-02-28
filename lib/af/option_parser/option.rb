@@ -26,13 +26,6 @@ module ::Af::OptionParser
       return @target_container
     end
 
-    def target_variable
-      unless @target_variable
-        @target_variable = @long_name[2..-1].gsub(/-/, '_').gsub(/[^0-9a-zA-Z]/, '_')
-      end
-      return @target_variable
-    end
-
     def target_class_variable
       return "@@#{target_variable}"
     end
@@ -79,7 +72,7 @@ module ::Af::OptionParser
     end
 
     def instantiate_target_variable
-      if target_container.present?
+      if target_container.present? && target_variable.present?
         set_target_variable(@default_value)
         unless @do_not_create_accessor
           if target_container.is_a? Class
@@ -93,7 +86,7 @@ module ::Af::OptionParser
     end
 
     def set_target_variable(value)
-      if target_container
+      if target_container.present? && target_variable.present?
         if target_container.is_a? Class
           # this is a Class -- set @@foo
           target_container.class_variable_set(target_class_variable, value)
