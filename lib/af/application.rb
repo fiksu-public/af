@@ -49,10 +49,6 @@ module Af
         Helper.new.help(::Af::Application.singleton.usage, true)
         exit 0
       end
-      opt :application_version, "application version", :short => :V do
-        puts Af::Application.singleton.application_version
-        exit 0
-      end
       opt :daemon, "run as daemon", :short => :d
     end
 

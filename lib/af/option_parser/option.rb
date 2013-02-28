@@ -1,7 +1,5 @@
 module ::Af::OptionParser
   class Option
-    include ::Af::Application::Component
-
     FACTORY_SETTABLES = [ :option_type, :requirements, :short_name, :argument_note, :note,
                           :environment_variable, :default_value, :evaluation_method,
                           :option_group_name, :hidden, :choices, :value_to_set_target_variable,
@@ -35,6 +33,18 @@ module ::Af::OptionParser
       return @target_variable
     end
 
+    def target_class_variable
+      return "@@#{target_variable}"
+    end
+
+    def target_instance_variable
+      return "@#{target_variable}"
+    end
+
+    def has_value_to_set_target_variable?
+      return @has_value_to_set_target_variable || false
+    end
+
     def initialize(long_name, parameters = {})
       @long_name = long_name
       set_instance_variables(parameters)
@@ -48,7 +58,7 @@ module ::Af::OptionParser
     end
 
     def evaluate(argument)
-      if @value_to_set_target_variable.present?
+      if has_value_to_set_target_variable?
         argument = @value_to_set_target_variable
       else
         if @requirements == ::Af::OptionParser::GetOptions::NO_ARGUMENT
@@ -59,14 +69,19 @@ module ::Af::OptionParser
         @option_type ||
         OptionType.find_by_value(argument) ||
         OptionType.find_by_short_name(:string)
-      raise UndeterminedArgumentTypeError.new(@long_name) unless evaluator
-      return evaluator.evaluate_argument(argument, self)
+      if evaluator.nil?
+        raise UndeterminedArgumentTypeError.new(@long_name)
+      elsif evaluator.is_a? Proc
+        return evaluator.call(argument, self)
+      else
+        return evaluator.evaluate_argument(argument, self)
+      end
     end
 
     def instantiate_target_variable
       if target_container.present?
-        if target_variable.present?
-          target_container.instance_variable_set("@#{target_variable}", @default_value)
+        set_target_variable(@default_value)
+        unless target_container.is_a? Class
           unless @do_not_create_accessor
             target_container.class.class_eval "attr_accessor :#{target_variable}"
           end
@@ -76,7 +91,13 @@ module ::Af::OptionParser
 
     def set_target_variable(value)
       if target_container
-        target_container.instance_variable_set("@#{target_variable}", value)
+        if target_container.is_a? Class
+          # this is a Class -- set @@foo
+          target_container.class_variable_set(target_class_variable, @default_value)
+        else
+          # this is an instance -- set @foo
+          target_container.instance_variable_set(target_instance_variable, @default_value)
+        end
       end
     end
 
@@ -88,7 +109,10 @@ module ::Af::OptionParser
       parameters.select do |name,value|
         FACTORY_SETTABLES.include? name
       end.each do |name,value|
-        instance_variable_set("@{name}", value)
+        instance_variable_set("@#{name}", value)
+      end
+      if parameters[:value_to_set_target_variable]
+        @has_value_to_set_target_variable = true
       end
     end
 

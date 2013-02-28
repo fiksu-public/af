@@ -31,23 +31,21 @@ module Af::OptionParser
       if maybe_title.is_a? String
         factory_hash[:title] = maybe_title
       else
-        extra_stuff.shift(maybe_title)
+        extra_stuff.unshift(maybe_title)
       end
 
       # then fold in the hash
-      maybe_hash = extra_stuff[-1]
+      maybe_hash = extra_stuff[-1] || {}
       if maybe_hash.is_a? Hash
         factory_hash.merge! maybe_hash
       end
 
       OptionGroup.factory(group_name, factory_hash)
       # if a block is given, then let the yeilded block 
-      # have access to our scoped hash.  This could be factory_hash
-      # I chose just the hash that is passed in (extra_stuff) instead
-      # because it is more explicit what is passed to child scopes
+      # have access to our scoped hash.
       if block_given?
         begin
-          @@opt_group_stack.push extra_stuff
+          @@opt_group_stack.push factory_hash.merge({:group => group_name})
           yield
         ensure
           @@opt_group_stack.pop
@@ -182,7 +180,7 @@ module Af::OptionParser
         :method => :evaluation_method,
         :argument => :requirements
       }.each do |current_key_name,new_key_name|
-        if factory_hash.hash_key? current_key_name
+        if factory_hash.has_key? current_key_name
           factory_hash[new_key_name] = factory_hash.delete(current_key_name)
         end
       end

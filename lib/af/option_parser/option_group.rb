@@ -24,7 +24,7 @@ module ::Af::OptionParser
       parameters.select do |name,value|
         FACTORY_SETTABLES.include? name
       end.each do |name,value|
-        instance_variable_set("@{name}", value)
+        instance_variable_set("@#{name}", value)
       end
     end
 

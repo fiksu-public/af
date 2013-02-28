@@ -7,15 +7,9 @@ module Af::OptionParser
       exit 1
     end
 
-    # Returns the current version of the application.
-    # *Must be overridden in a subclass.*
-    def application_version
-      return "#{self.class.name}: unknown application version"
-    end
-
     # Returns a string detailing application usage.
     def usage
-      return "rails runner #{self.class.name}.run [OPTIONS]"
+      return "USAGE: rails runner #{self.class.name}.run [OPTIONS]"
     end
 
     # Update options for the provided long switch option name.
@@ -38,14 +32,14 @@ module Af::OptionParser
 
       # Iterate through the command line options. Print and exit if the switch
       # is invalid, help or app version.  Otherwise, process and handle.
-      get_options.each do |long_name,argument|
-        option = Option.find(long_name)
-        # XXX are these three lines needed?
-        if option.nil?
-          opt_error "unknown option: #{long_name}"
-        end
+      begin
+        get_options.each do |long_name,argument|
+          option = Option.find(long_name)
 
-        option.evaluate_and_set_target(argument)
+          option.evaluate_and_set_target(argument)
+        end
+      rescue GetoptLong::InvalidOption, OptionParserError => e
+        opt_error e.message
       end
     end
   end

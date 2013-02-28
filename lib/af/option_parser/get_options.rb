@@ -24,18 +24,27 @@ module Af::OptionParser
     #         :environment_variable => <how do these work???>
     #         :note => <arg description>
     def initialize(declared_options = [])
-      environment_variables = {} # options that are set in the ENV
       getopt_options = []
+
+      argv_additions = []
 
       # Iterate through all of the options.
       declared_options.each do |option|
         # Set aside 
         if option.environment_variable.present?
+          # Add enviroment variables to the front of ARGV.
           environment_variables[option.environment_variable] = option.long_name
+          if ENV[option.environment_variable]
+            argv_additions << option.long_name
+            unless ENV[option.environment_variable].empty?
+              # if the envvar is empty we assume this is a switch (no parameter)
+              argv_additions << ENV[option.environment_variable] 
+            end
+          end
         end
 
         # Convert hash into array, in format expected by Getoptlong#new.
-        # Example: ['--foo', '-f', 'bar']
+        # Example: ['--foo', '-f', GetoptLong::NO_ARGUMENT]
         options = []
         options << option.long_name
         if (option.short_name)
@@ -45,14 +54,7 @@ module Af::OptionParser
         getopt_options << options
       end
 
-      # Add enviroment variables to the front of ARGV.
-      argv_additions = []
-      for environment_variable_name,value in environment_variables do
-        if ENV[environment_variable_name]
-          argv_additions << value
-          argv_additions << ENV[environment_variable_name] unless ENV[environment_variable_name].empty?
-        end
-      end
+      # add any ARGVs to our list
       for arg in ARGV do
         argv_additions << arg
       end
@@ -62,6 +64,5 @@ module Af::OptionParser
 
       super(*getopt_options)
     end
-
   end
 end

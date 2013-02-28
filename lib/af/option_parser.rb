@@ -6,14 +6,14 @@ require 'af/option_parser/interface.rb'
 require 'af/option_parser/option.rb'
 require 'af/option_parser/option_group.rb'
 require 'af/option_parser/option_type.rb'
-require 'af/option_parser/process_command_line_options.rb'
 
 module Af::OptionParser
   include Interface
 
-  class MisconfiguredOptionError < ArgumentError; end
-  class BadChoiceError < ArgumentError; end
-  class UndeterminedArgumentTypeError < ArgumentError; end
+  class OptionParserError < ArgumentError; end
+  class MisconfiguredOptionError < OptionParserError; end
+  class BadChoiceError < OptionParserError; end
+  class UndeterminedArgumentTypeError < OptionParserError; end
 
   def self.included(base)
     add_option_types
