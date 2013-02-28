@@ -38,7 +38,7 @@ module Af::OptionParser
 
           option.evaluate_and_set_target(argument)
         end
-      rescue GetoptLong::InvalidOption, OptionParserError => e
+      rescue GetoptLong::Error, Error => e
         opt_error e.message
       end
     end

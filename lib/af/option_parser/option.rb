@@ -54,7 +54,7 @@ module ::Af::OptionParser
 
     def evaluate_and_set_target(argument)
       value = evaluate(argument)
-      set_target_value(value)
+      set_target_variable(value)
     end
 
     def evaluate(argument)
@@ -68,7 +68,7 @@ module ::Af::OptionParser
       evaluator = @evaluation_method ||
         @option_type ||
         OptionType.find_by_value(argument) ||
-        OptionType.find_by_short_name(:string)
+        OptionType.find_by_short_name(:switch)
       if evaluator.nil?
         raise UndeterminedArgumentTypeError.new(@long_name)
       elsif evaluator.is_a? Proc
@@ -81,8 +81,11 @@ module ::Af::OptionParser
     def instantiate_target_variable
       if target_container.present?
         set_target_variable(@default_value)
-        unless target_container.is_a? Class
-          unless @do_not_create_accessor
+        unless @do_not_create_accessor
+          if target_container.is_a? Class
+            target_container.class_eval "def self.#{target_variable}; return #{target_class_variable}; end"
+            target_container.class_eval "def self.#{target_variable}=(value); return #{target_class_variable} = value; end"
+          else
             target_container.class.class_eval "attr_accessor :#{target_variable}"
           end
         end
@@ -93,10 +96,10 @@ module ::Af::OptionParser
       if target_container
         if target_container.is_a? Class
           # this is a Class -- set @@foo
-          target_container.class_variable_set(target_class_variable, @default_value)
+          target_container.class_variable_set(target_class_variable, value)
         else
           # this is an instance -- set @foo
-          target_container.instance_variable_set(target_instance_variable, @default_value)
+          target_container.instance_variable_set(target_instance_variable, value)
         end
       end
     end

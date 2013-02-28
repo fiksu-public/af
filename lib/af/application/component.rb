@@ -40,11 +40,16 @@ module Af
         end
 
         def opt(long_name = nil, *extra_stuff, &b)
-          return ::Af::Application.singleton.opt(long_name, *extra_stuff, &b)
+          return ::Af::Application.opt(long_name, *extra_stuff, &b)
         end
 
-        def opt_group(group_name, *extra_stuff)
-          return ::Af::Application.singleton.opt_group(group_name, *extra_stuff)
+        def opt_group(group_name, *extra_stuff, &b)
+          if extra_stuff[-1].is_a? Hash
+            more_extra_stuff = extra_stuff[-1].merge({:target_container => self})
+          else
+            more_extra_stuff = extra_stuff + [{:target_container => self}]
+          end
+          return ::Af::Application.opt_group(group_name, *more_extra_stuff, &b)
         end
       end
 
@@ -58,17 +63,6 @@ module Af
 
       def af_application
         return ::Af::Application.singleton.af_name
-      end
-    end
-
-    # just remove this and make the initial component safe
-    module SafeComponent
-      def af_logger(logger_name = (af_name || "Unknown"))
-        return ::Af::Application.singleton(true).logger(logger_name)
-      end
-
-      def af_name
-        return ::Af::Application.singleton(true).af_name
       end
     end
   end

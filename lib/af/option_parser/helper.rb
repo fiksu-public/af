@@ -22,7 +22,9 @@ module ::Af::OptionParser
             # skipping hidden groups
           else
             output << "#{group.group_name}: #{group.title}"
-            output << " " + (group.description || "").chomp.split("\n").map(&:strip).join("\n ")
+            unless group.description.blank?
+              output << " " + group.description.split("\n").map(&:strip).join("\n ")
+            end
 
             rows = []
 

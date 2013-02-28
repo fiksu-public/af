@@ -10,10 +10,10 @@ require 'af/option_parser/option_type.rb'
 module Af::OptionParser
   include Interface
 
-  class OptionParserError < ArgumentError; end
-  class MisconfiguredOptionError < OptionParserError; end
-  class BadChoiceError < OptionParserError; end
-  class UndeterminedArgumentTypeError < OptionParserError; end
+  class Error < ArgumentError; end
+  class MisconfiguredOptionError < Error; end
+  class BadChoiceError < Error; end
+  class UndeterminedArgumentTypeError < Error; end
 
   def self.included(base)
     add_option_types
@@ -21,6 +21,7 @@ module Af::OptionParser
   end
 
   def self.add_option_types
+    OptionType.new(:Switch, :switch, "", lambda{|argument,option| return true}, TrueClass)
     OptionType.new(:Int, :int, "INTEGER", :to_i, Fixnum)
     OptionType.new(:Integer, :integer, "INTEGER", :to_i, Fixnum)
     OptionType.new(:Float, :float, "NUMBER", :to_f, Float)

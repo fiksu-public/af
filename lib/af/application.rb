@@ -23,10 +23,6 @@ module Af
   # Subclasses can implement:
   #   * pre_work
   #
-  # Advanced Subclasses may implement:
-  #   * post_command_line_parsing
-  #   * option_handler
-  #   * ??
   #
   class Application
     include Af::OptionParser
@@ -41,11 +37,11 @@ module Af
     DESCRIPTION
 
     opt_group :basic do
-      opt '?', "show this help (--?? for all)", :short => '?' do
+      opt '?', "show this help (--?? for all)", :short => '?', :no_accessor => true do
         Helper.new.help(::Af::Application.singleton.usage)
         exit 0
       end
-      opt '??', "show help for all commands", :hidden => true do
+      opt '??', "show help for all commands", :hidden => true, :no_accessor => true do
         Helper.new.help(::Af::Application.singleton.usage, true)
         exit 0
       end
