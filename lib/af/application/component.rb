@@ -10,9 +10,7 @@ module Af
     #
     #      after_create :do_something_after_create
     #
-    #      def foo_logger
-    #        return af_logger(self.class.name)
-    #      end
+    #      create_logger :foo
     #
     #      private
     #      def do_something_after_create
@@ -37,7 +35,11 @@ module Af
             prefix = "#{prefix}_"
           end
           method_name = "#{prefix}logger"
-          class_eval "def #{create_class_method ? 'self.' : ''}#{method_name}; return af_logger('#{logger_name}'); end"
+          class_eval <<-CLASS_EVAL
+          def #{create_class_method ? 'self.' : ''}#{method_name}
+            return Log4r::Logger['#{logger_name}'] || Log4r::Logger.new('#{logger_name}')
+          end
+          CLASS_EVAL
         end
 
         def create_class_proxy_logger(prefix = "", logger_name = self.name)

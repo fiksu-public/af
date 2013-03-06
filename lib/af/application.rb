@@ -95,18 +95,8 @@ module Af
       application._work
     end
 
-    # Return the single allowable instance of this class.
-    #
-    # *Arguments*
-    #   * safe - defaults to false, instantiates instance if it doesn't exist
-    def self.singleton(safe = false)
-      if @@singleton.nil?
-        if safe
-          @@singleton = new
-        else
-          fail("Application @@singleton not initialized! Maybe you are using a Proxy before creating an instance? or use SafeProxy")
-        end
-      end
+    # Return the single allowable instance of this class, if the class has been instantiated
+    def self.singleton
       return @@singleton
     end
 
