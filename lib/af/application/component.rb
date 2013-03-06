@@ -6,7 +6,7 @@ module Af
     # consider a model that wishes to use the logging functionality of Af:
     #
     #    class Foo < ActiveRecord::Base
-    #      include ::Af::Application::SafeProxy
+    #      include ::Af::Application::Component
     #
     #      after_create :do_something_after_create
     #
@@ -31,25 +31,31 @@ module Af
       end
 
       module ClassMethods
-        def create_proxy_logger(prefix = "", logger_name = self.class.name)
-          if !prefix.blank? && prefix[-1..-1] != '_'
+        def create_proxy_logger(prefix = "", logger_name = self.name, create_class_method = false)
+          prefix = prefix.to_s
+          if !prefix.blank? && prefix[-1] != '_'
             prefix = "#{prefix}_"
           end
           method_name = "#{prefix}logger"
-          class_eval "def #{method_name}; return af_logger('#{logger_name}'); end"
+          class_eval "def #{create_class_method ? 'self.' : ''}#{method_name}; return af_logger('#{logger_name}'); end"
         end
 
-        def opt(long_name = nil, *extra_stuff, &b)
+        def create_class_proxy_logger(prefix = "", logger_name = self.name)
+          create_proxy_logger(prefix, logger_name, true)
+        end
+
+        def opt(long_name, *extra_stuff, &b)
           return ::Af::Application.opt(long_name, *extra_stuff, &b)
         end
 
         def opt_group(group_name, *extra_stuff, &b)
+          extra_hash = {}
           if extra_stuff[-1].is_a? Hash
-            more_extra_stuff = extra_stuff[-1].merge({:target_container => self, :disabled => true})
-          else
-            more_extra_stuff = extra_stuff + [{:target_container => self, :disabled => true}]
+            extra_hash = extra_stuff.pop
           end
-          return ::Af::Application.opt_group(group_name, *more_extra_stuff, &b)
+          extra_stuff.push extra_hash.merge({:target_container => self, :disabled => true})
+
+          return ::Af::Application.opt_group(group_name, *extra_stuff, &b)
         end
       end
 
@@ -62,7 +68,7 @@ module Af
       end
 
       def af_application
-        return ::Af::Application.singleton.af_name
+        return ::Af::Application.singleton
       end
     end
   end
