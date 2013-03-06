@@ -18,6 +18,12 @@ module Af::OptionParser
       self.class.opt(long_name, *extra_stuff, &b)
     end
 
+    # Update option_groups for the provided group option name.
+    #  just a helper to UI method "opt_group"
+    def opt_group_update(group_name, *extra_stuff, &b)
+      self.class.opt_group(group_name, *extra_stuff, &b)
+    end
+
     # Collect and process all of the switches (values) on the command
     # line, as previously configured.
     def process_command_line_options

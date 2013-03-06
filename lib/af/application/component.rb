@@ -45,9 +45,9 @@ module Af
 
         def opt_group(group_name, *extra_stuff, &b)
           if extra_stuff[-1].is_a? Hash
-            more_extra_stuff = extra_stuff[-1].merge({:target_container => self})
+            more_extra_stuff = extra_stuff[-1].merge({:target_container => self, :disabled => true})
           else
-            more_extra_stuff = extra_stuff + [{:target_container => self}]
+            more_extra_stuff = extra_stuff + [{:target_container => self, :disabled => true}]
           end
           return ::Af::Application.opt_group(group_name, *more_extra_stuff, &b)
         end

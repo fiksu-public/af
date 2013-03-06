@@ -19,6 +19,7 @@ module Af::OptionParser
     #     * :description - details about group
     #     * :priority - order to show groups in help --?
     #     * :hidden - true if this group's options should only be seen with --?
+    #     * :disabled - (default: false)
     #     *  anything else in this hash can be passed to yield block as defaults for other opt/opt_group invocations
     #   * yeilds to block if given with extra_stuff in a global space that opt/opt_group calls use as defaults
 
@@ -68,6 +69,7 @@ module Af::OptionParser
     #     :method - (:evaluation_method) called to evaluate argument: lambda{|argument,option| ... }
     #     :group - (:option_group_name) name of group
     #     :hidden - should option only be shown in --?
+    #     :disabled - (default: false)
     #     :choices - array of valid choices, e.g: [:blue, :green, :red]
     #     :set - (:value_to_set_target_variable) value to set if option specified (use for switches where --blue means set @color = 'blue')
     #     :no_accessor - (:do_not_create_accessor) don't class_eval 'attr_accessor :#{target_variable}'

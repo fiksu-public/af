@@ -1,13 +1,13 @@
 module ::Af::OptionParser
   class OptionGroup
-    FACTORY_SETTABLES = [:title, :priority, :description, :hidden]
+    FACTORY_SETTABLES = [:title, :priority, :description, :hidden, :disabled]
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :group_name
 
     @@option_groups = {}
 
     def self.option_groups
-      return @@option_groups
+      return @@option_groups.reject{|k,v| v.disabled}
     end
 
     def initialize(group_name, parameters = {})

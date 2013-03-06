@@ -3,18 +3,18 @@ module ::Af::OptionParser
     FACTORY_SETTABLES = [ :option_type, :requirements, :short_name, :argument_note, :note,
                           :environment_variable, :default_value, :evaluation_method,
                           :option_group_name, :hidden, :choices, :value_to_set_target_variable,
-                          :do_not_create_accessor, :target_variable, :target_container ]
+                          :do_not_create_accessor, :target_variable, :target_container, :disabled ]
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :long_name
 
     @@options = {}
 
     def self.all_options
-      return @@options
+      return @@options.reject{|k,v| v.disabled}
     end
 
     def self.all_option_types
-      return @@option_types ||= options.map{|o| o.option_type}.uniq
+      return @@option_types ||= all_options.map{|o| o.option_type}.uniq
     end
 
     # ACCESSORS
