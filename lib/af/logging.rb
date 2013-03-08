@@ -1,9 +1,10 @@
 module Af::Logging
   def self.included(base)
-    base.extend(ClassMethods)
+    Configurator.singleton
   end
 
-  module ClassMethods
+  def logger(logger_name = :default)
+    return Configurator.singleton.logger(logger_name)
   end
 
   def logging_configurator

@@ -1,4 +1,6 @@
 require 'af/option_parser'
+require 'af/logging/configurator'
+require 'af/logging'
 require 'af/application'
 require 'af/application/component'
 require 'af/q_thread/interface'

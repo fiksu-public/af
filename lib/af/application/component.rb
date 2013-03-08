@@ -1,7 +1,6 @@
 module Af
   class Application
-    # Proxy's are used by dependant classes to reach back to the Application frame for
-    # some functionality.
+    # Proxy's are used by dependant classes to interact with the Application framework
     #
     # consider a model that wishes to use the logging functionality of Af:
     #
@@ -18,14 +17,10 @@ module Af
     #      end
     #    end
     #
-    # The difference between Proxy and SafeProxy is simply that
-    # SafeProxy can be used in classes that may not be in an Af::Application
-    # run (ie, models that are shared with a Rails web app where Af::Application
-    # is never instantiated)
-    #
     module Component
       def self.included(base)
         base.extend(ClassMethods)
+        base.send(:include, ::Af::Logging)
       end
 
       module ClassMethods

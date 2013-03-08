@@ -7,24 +7,6 @@ require 'reasonable_log4r'
 
 module Af::Logging
   class Configurator
-    include Af::Application::Component
-
-    opt_group :logging, "logger options", :priority => 100, :hidden => true, :description => <<-DESCRIPTION
-      These are options associated with logging whose core is Log4r.
-      Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
-    DESCRIPTION
-    
-    opt_group :logging do
-      opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"]
-      opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."]
-      opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES'
-      opt :log_dump_configuration, "show the log4r configuration"
-      opt :log_levels, "set log levels", :type => :hash
-      opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string
-      opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string
-      opt :log_console, "force logging to console"
-    end
-
     @@singleton = nil
 
     # Return the single allowable instance of this class, if the class has been instantiated
@@ -34,10 +16,7 @@ module Af::Logging
 
     def initialize
       @@singleton = self
-      opt_update :log_configuration_search_path, :default => [".", Rails.root + "config/logging"]
-      opt_update :log_configuration_files, :default => ["af.yml", "#{af_name}.yml"]
-      opt_update :log_stdout, :default => Rails.root + "log/runner.log"
-      opt_update :log_stderr, :default => Rails.root + "log/runner-errors.log"
+      Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
     end
 
     # Parse and return the provided log level, which can be an integer,
@@ -141,12 +120,10 @@ module Af::Logging
 
     def configurate
       if log_console
-        Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
         Log4r::Logger.root.outputters << Log4r::Outputter.stdout
       else
         logging_load_configuration
         if logging_configuration_looks_bogus
-          Log4r::Configurator.custom_levels(:DEBUG, :DEBUG_FINE, :DEBUG_MEDIUM, :DEBUG_GROSS, :DETAIL, :INFO, :WARN, :ALARM, :ERROR, :FATAL)
           Log4r::Logger.root.outputters << Log4r::Outputter.stdout
         end
       end
