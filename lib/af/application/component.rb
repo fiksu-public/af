@@ -61,7 +61,15 @@ module Af
       end
 
       def af_name
-        return ::Af::Application.singleton.af_name
+        return ::Af::Application.singleton.try(:af_name)
+      end
+
+      def periodic_application_checkpoint
+        af_application.try(:periodic_application_checkpoint)
+      end
+
+      def protect_from_signals
+        af_application.try(:protect_from_signals)
       end
 
       def af_application

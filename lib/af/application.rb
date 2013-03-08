@@ -29,7 +29,7 @@ module Af
       These are the stanadard options offered to all Af commands.
     DESCRIPTION
 
-    opt_group :basic do
+    opt_group :basic, :target_container => Af::Logging::Configurator do
       opt '?', "show this help (--?? for all)", :short => '?', :var => nil do
         Helper.new.help(::Af::Application.singleton.usage)
         exit 0
@@ -222,8 +222,8 @@ module Af
       end
 
       if @daemon
-        $stdout.reopen(@log_stdout, "a")
-        $stderr.reopen(@log_stderr, "a")
+        $stdout.reopen(Af::Logging::Configurator.log_stdout, "a")
+        $stderr.reopen(Af::Logging::Configurator.log_stderr, "a")
         $stdout.sync = true
         $stderr.sync = true
         logger.info "Daemonizing"
