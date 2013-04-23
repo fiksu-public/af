@@ -23,5 +23,5 @@ Gem::Specification.new do |s|
  s.add_dependency 'reasonable_log4r', '>= 0.9.0'
  s.add_dependency 'uuid'
  s.add_dependency "rails", '>= 3.0.0'
- s.add_dependency 'rspec-rails', '2.8.1'
+ s.add_dependency 'rspec-rails', '>=2.12.0'
 end
