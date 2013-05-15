@@ -190,5 +190,16 @@ module Af::OptionParser
 
       Option.factory(long_name, factory_hash)
     end
+
+    def opt_error(text)
+      puts text
+      Helper.new.help(usage)
+      exit 1
+    end
+
+    def usage
+      return "USAGE: rails runner #{self.name}.run [OPTIONS]"
+    end
+
   end
 end

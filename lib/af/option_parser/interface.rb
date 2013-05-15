@@ -2,25 +2,23 @@ module Af::OptionParser
   module Interface
     # used by application code to note an error and exit
     def opt_error(text)
-      puts text
-      Helper.new.help(usage)
-      exit 1
+      self.class.opt_error(text)
     end
 
     # Returns a string detailing application usage.
     def usage
-      return "USAGE: rails runner #{self.class.name}.run [OPTIONS]"
+      return self.class.usage
     end
 
     # Update options for the provided long switch option name.
     #  just a helper to UI method "opt"
-    def opt_update(long_name, *extra_stuff, &b)
+    def opt(long_name, *extra_stuff, &b)
       self.class.opt(long_name, *extra_stuff, &b)
     end
 
     # Update option_groups for the provided group option name.
     #  just a helper to UI method "opt_group"
-    def opt_group_update(group_name, *extra_stuff, &b)
+    def opt_group(group_name, *extra_stuff, &b)
       self.class.opt_group(group_name, *extra_stuff, &b)
     end
 

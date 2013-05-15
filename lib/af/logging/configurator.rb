@@ -47,7 +47,7 @@ module Af::Logging
     #   * logger_name - logger to return, defaults to ":default"
     def logger(logger_name = :default)
       # Coerce the logger_name if needed.
-      logger_name = af_name if logger_name == :default
+      logger_name = ::Af::Application.singleton.af_name if logger_name == :default
       # Check with Log4r to see if there is a logger by this name.
       # If Log4r doesn't have a logger by this name, make one with Af defaults.
       return Log4r::Logger[logger_name] || Log4r::Logger.new(logger_name)
