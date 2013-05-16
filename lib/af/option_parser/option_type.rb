@@ -9,7 +9,7 @@ module ::Af::OptionParser
     end
 
     def self.valid_option_type_names
-      return types.map(&:name)
+      return types.map(&:short_name)
     end
 
     def initialize(name, short_name, argument_note, evaluate_method, handler_method)

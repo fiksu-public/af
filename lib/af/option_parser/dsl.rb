@@ -164,8 +164,9 @@ module Af::OptionParser
       end
 
       if factory_hash[:type]
-        factory_hash[:type] = OptionType.find_by_short_name(factory_hash[:type])
-        raise MisconfiguredOptionError.new("#{long_name}: option type #{factory_hash[:type].inspect} is not recognized. (valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless factory_hash[:type]
+        type = OptionType.find_by_short_name(factory_hash[:type])
+        raise MisconfiguredOptionError.new("#{long_name}: option type #{factory_hash[:type].inspect} is not recognized. (valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless type
+        factory_hash[:type]  = type
       end
 
       factory_hash[:method] = b if b
