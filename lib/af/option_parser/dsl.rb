@@ -138,7 +138,11 @@ module Af::OptionParser
                                   ::Af::OptionParser::GetOptions::OPTIONAL_ARGUMENT
                                 elsif factory_hash[:argument] == nil
                                   if factory_hash[:type]
-                                    ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
+                                    if factory_hash[:type] == :switch
+                                      ::Af::OptionParser::GetOptions::OPTIONAL_ARGUMENT
+                                    else
+                                      ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
+                                    end
                                   else
                                     ::Af::OptionParser::GetOptions::NO_ARGUMENT
                                   end
