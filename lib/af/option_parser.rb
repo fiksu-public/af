@@ -22,15 +22,15 @@ module Af::OptionParser
 
   def self.add_option_types
     OptionType.new(:Switch, :switch, "", lambda {|argument,option|
-                     if ["t", "true", "yes", "on"].include?(argument.downcase)
+                     if ["t", "true", "yes", "on"].include?(argument.to_s.downcase)
                        return true
-                     elsif ["f", "false", "no", "off"].include?(argument.downcase)
-                       return true
+                     elsif ["f", "false", "no", "off"].include?(argument.to_s.downcase)
+                       return false
                      else
-                       if default_value == nil
+                       if option.default_value == nil
                          return true
                        else
-                         return !default_value
+                         return !option.default_value
                        end
                      end
                    }, lambda{|value| return (value.is_a?(TrueClass) || value.is_a?(FalseClass))})

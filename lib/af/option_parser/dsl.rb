@@ -144,7 +144,8 @@ module Af::OptionParser
                                       ::Af::OptionParser::GetOptions::REQUIRED_ARGUMENT
                                     end
                                   else
-                                    ::Af::OptionParser::GetOptions::NO_ARGUMENT
+                                    factory_hash[:type] = :switch
+                                    ::Af::OptionParser::GetOptions::OPTIONAL_ARGUMENT
                                   end
                                 else
                                   factory_hash[:argument]
