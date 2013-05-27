@@ -6,6 +6,8 @@ require 'af/option_parser/interface.rb'
 require 'af/option_parser/option.rb'
 require 'af/option_parser/option_group.rb'
 require 'af/option_parser/option_type.rb'
+require 'af/option_parser/option_store.rb'
+require 'af/option_parser/option_finder.rb'
 
 module Af::OptionParser
   include Interface

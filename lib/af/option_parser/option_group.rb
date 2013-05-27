@@ -4,20 +4,9 @@ module ::Af::OptionParser
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :group_name
 
-    @@option_groups = {}
-
-    def self.option_groups
-      return @@option_groups.reject{|k,v| v.disabled}
-    end
-
     def initialize(group_name, parameters = {})
       @group_name = group_name
       set_instance_variables(parameters)
-      @@option_groups[group_name] = self
-    end
-
-    def self.find(group_name)
-      return option_groups[group_name]
     end
 
     def set_instance_variables(parameters = {})
@@ -28,8 +17,16 @@ module ::Af::OptionParser
       end
     end
 
-    def self.factory(group_name, factory_hash = {})
-      option_group = find(group_name) || new(group_name)
+    def merge(that_option_group)
+      FACTORY_SETTABLES.each do |name|
+        if that_option_group.instance_variable_defined?("@#{name}")
+          self.send("#{name}=", that_option_group.send(name))
+        end
+      end
+    end
+
+    def self.factory(group_name, containing_class, factory_hash = {})
+      option_group = OptionStore.factory(containing_class).get_option_group(group_name)
       option_group.set_instance_variables(factory_hash)
       return option_group
     end

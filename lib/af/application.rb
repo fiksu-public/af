@@ -32,11 +32,11 @@ module Af
 
     opt_group :basic do
       opt '?', "show this help (--?? for all)", :short => '?', :var => nil do
-        Helper.new.help(::Af::Application.singleton.usage)
+        Helper.new(::Af::Application.singleton.af_opt_class_path).help(::Af::Application.singleton.usage)
         exit 0
       end
       opt '??', "show help for all commands", :hidden => true, :var => nil do
-        Helper.new.help(::Af::Application.singleton.usage, true)
+        Helper.new(::Af::Application.singleton.af_opt_class_path).help(::Af::Application.singleton.usage, true)
         exit 0
       end
       opt :daemon, "run as daemon", :short => :d
@@ -133,7 +133,7 @@ module Af
     #   * usage - string describing usage (optional)
     #   * options - hash of options, containing ???
     def _run
-      process_command_line_options
+      process_command_line_options(af_opt_class_path)
       post_command_line_parsing
       pre_work
       return self
@@ -176,6 +176,11 @@ module Af
     # Accessor for the af name set on the instance's class.
     def af_name
       return self.class.name
+    end
+
+    # override if you wish to include other class's opt/opt_group
+    def af_opt_class_path
+      return [self.class]
     end
 
     protected

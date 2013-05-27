@@ -41,7 +41,7 @@ module Af::OptionParser
         factory_hash.merge! maybe_hash
       end
 
-      OptionGroup.factory(group_name, factory_hash)
+      OptionGroup.factory(group_name, self, factory_hash)
       # if a block is given, then let the yeilded block 
       # have access to our scoped hash.
       if block_given?
@@ -108,7 +108,7 @@ module Af::OptionParser
         if extra.is_a? Symbol
           if [:required, :optional, :none].include? extra
             factory_hash[:argument] = extra
-          elsif Option.all_option_types.include? extra
+          elsif OptionType.valid_option_type_names.include? extra
             factory_hash[:type] = extra
           else
             raise MisconfiguredOptionError.new("#{long_name}: extra options: #{extra.inspect} are not understood")
@@ -194,12 +194,13 @@ module Af::OptionParser
         end
       end
 
-      Option.factory(long_name, factory_hash)
+      OptionStore.factory(self)
+      Option.factory(long_name, self, factory_hash)
     end
 
     def opt_error(text)
       puts text
-      Helper.new.help(usage)
+      Helper.new(::Af::Application.singleton.af_opt_class_path).help(usage)
       exit 1
     end
 

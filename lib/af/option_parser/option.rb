@@ -7,16 +7,6 @@ module ::Af::OptionParser
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :long_name
 
-    @@options = {}
-
-    def self.all_options
-      return @@options.reject{|k,v| v.disabled}
-    end
-
-    def self.all_option_types
-      return @@option_types ||= all_options.map{|o| o.option_type}.uniq
-    end
-
     # ACCESSORS
 
     def target_container
@@ -42,7 +32,6 @@ module ::Af::OptionParser
       @long_name = long_name
       set_instance_variables(parameters)
       @target_container ||= :af_application
-      @@options[long_name] = self
     end
 
     def evaluate_and_set_target(argument)
@@ -97,10 +86,6 @@ module ::Af::OptionParser
       end
     end
 
-    def self.find(long_name)
-      return all_options[long_name]
-    end
-
     def set_instance_variables(parameters = {})
       parameters.select do |name,value|
         FACTORY_SETTABLES.include? name
@@ -112,8 +97,16 @@ module ::Af::OptionParser
       end
     end
 
-    def self.factory(long_name, factory_hash = {})
-      option = find(long_name) || new(long_name)
+    def merge(that_option)
+      FACTORY_SETTABLES.each do |name|
+        if that_option.instance_variable_defined?("@#{name}")
+          self.send("#{name}=", that_option.send(name))
+        end
+      end
+    end
+
+    def self.factory(long_name, containing_class, factory_hash = {})
+      option = OptionStore.factory(containing_class).get_option(long_name)
       option.set_instance_variables(factory_hash)
       return option
     end

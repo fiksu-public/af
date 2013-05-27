@@ -10,13 +10,13 @@ module Af::OptionParser
       return self.class.usage
     end
 
-    # Update options for the provided long switch option name.
+    # Update Options for the provided long switch option name.
     #  just a helper to UI method "opt"
     def opt(long_name, *extra_stuff, &b)
       self.class.opt(long_name, *extra_stuff, &b)
     end
 
-    # Update option_groups for the provided group option name.
+    # Update OptionGroups for the provided group option name.
     #  just a helper to UI method "opt_group"
     def opt_group(group_name, *extra_stuff, &b)
       self.class.opt_group(group_name, *extra_stuff, &b)
@@ -24,11 +24,13 @@ module Af::OptionParser
 
     # Collect and process all of the switches (values) on the command
     # line, as previously configured.
-    def process_command_line_options
+    def process_command_line_options(af_option_interests)
       # Iterate through all options in the class heirachy.
       # Create instance variables and accessor methods for each.
 
-      options = Option.all_options.values
+      option_finder = OptionFinder.new(af_option_interests)
+
+      options = option_finder.all_options
       options.each(&:instantiate_target_variable)
 
       # Fetch the actual switches (and values) from the command line.
@@ -38,9 +40,7 @@ module Af::OptionParser
       # is invalid, help or app version.  Otherwise, process and handle.
       begin
         get_options.each do |long_name,argument|
-          option = Option.find(long_name)
-
-          option.evaluate_and_set_target(argument)
+          option_finder.find_option(long_name).evaluate_and_set_target(argument)
         end
       rescue GetoptLong::Error, Error => e
         opt_error e.message

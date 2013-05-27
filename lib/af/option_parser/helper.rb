@@ -1,9 +1,10 @@
 module ::Af::OptionParser
   class Helper
-    def initialize
-      @options = Option.all_options
-      @grouped_options = @options.values.group_by{|option| option.option_group_name || :basic}
-      @groups = OptionGroup.option_groups.values.sort{|a,b| (a.priority || 50) <=> (b.priority || 50)}
+    def initialize(af_opt_class_path)
+      option_finder = OptionFinder.new(af_opt_class_path)
+      @options = option_finder.all_options
+      @grouped_options = @options.group_by{|option| option.option_group_name || :basic}
+      @groups = option_finder.all_option_groups.sort{|a,b| (a.priority || 50) <=> (b.priority || 50)}
     end
 
     # Prints to stdout application usage and all command line options.
