@@ -24,11 +24,5 @@ module ::Af::OptionParser
         end
       end
     end
-
-    def self.factory(group_name, containing_class, factory_hash = {})
-      option_group = OptionStore.factory(containing_class).get_option_group(group_name)
-      option_group.set_instance_variables(factory_hash)
-      return option_group
-    end
   end
 end

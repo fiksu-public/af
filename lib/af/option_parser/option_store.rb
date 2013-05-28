@@ -15,7 +15,7 @@ module ::Af::OptionParser
     end
 
     def construct_option(long_name)
-      @options[long_name] ||= Option.new(long_name)
+      @options[long_name] ||= {}
       return @options[long_name]
     end
 
@@ -28,7 +28,7 @@ module ::Af::OptionParser
     end
 
     def construct_option_group(name)
-      @option_groups[name] ||= OptionGroup.new(name)
+      @option_groups[name] ||= {}
       return @option_groups[name]
     end
 

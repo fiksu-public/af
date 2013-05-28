@@ -14,7 +14,7 @@ module ::Af::OptionParser
             if options
               options.each do |long_name,option|
                 merged_option = @all_options[long_name] ||= Option.new(long_name)
-                merged_option.merge(option)
+                merged_option.set_instance_variables(option)
               end
             end
 
@@ -22,7 +22,7 @@ module ::Af::OptionParser
             if option_groups
               option_groups.each do |name,option_group|
                 merged_option_group = @all_option_groups[name] ||= OptionGroup.new(name)
-                merged_option_group.merge(option_group)
+                merged_option_group.set_instance_variables(option_group)
               end
             end
           end

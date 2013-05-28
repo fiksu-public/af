@@ -100,19 +100,14 @@ module ::Af::OptionParser
     def merge(that_option)
       FACTORY_SETTABLES.each do |name|
         if that_option.instance_variable_defined?("@#{name}")
-          if name == :target_container && self.instance_variable_defined?("@target_container") && that_option.send(name) == ::Af::Application.singleton
-            # such a hack -- ignore target_container if set a second time because its default is not null nil
-            next
-          end
           self.send("#{name}=", that_option.send(name))
         end
       end
     end
 
-    def self.factory(long_name, containing_class, factory_hash = {})
-      option = OptionStore.factory(containing_class).get_option(long_name)
-      option.set_instance_variables(factory_hash)
-      return option
+    def error(text)
+      puts "ERROR: #{self.long_name}: #{text} (--? for help)"
+      exit 1
     end
   end
 end

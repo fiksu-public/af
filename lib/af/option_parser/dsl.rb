@@ -41,7 +41,8 @@ module Af::OptionParser
         factory_hash.merge! maybe_hash
       end
 
-      OptionGroup.factory(group_name, self, factory_hash)
+      OptionStore.factory(self).get_option_group(group_name).merge!(factory_hash)
+
       # if a block is given, then let the yeilded block 
       # have access to our scoped hash.
       if block_given?
@@ -200,12 +201,11 @@ module Af::OptionParser
         end
       end
 
-      Option.factory(long_name, self, factory_hash)
+      OptionStore.factory(self).get_option(long_name).merge!(factory_hash)
     end
 
     def opt_error(text)
-      puts text
-      Helper.new(::Af::Application.singleton.af_opt_class_path).help(usage)
+      puts "ERROR: #{text} (--? for help)"
       exit 1
     end
 
