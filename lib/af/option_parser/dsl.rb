@@ -176,6 +176,12 @@ module Af::OptionParser
 
       factory_hash[:method] = b if b
 
+      unless factory_hash[:argument_note]
+        unless type.argument_note.blank?
+          factory_hash[:argument_note] = type.argument_note
+        end
+      end
+
       # rename keys in factory hash from the UI names to the API names
 
       {

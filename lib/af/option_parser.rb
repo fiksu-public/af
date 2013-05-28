@@ -57,14 +57,14 @@ module Af::OptionParser
                    }, Symbol)
     OptionType.new(:Hash, :hash, "K1=V1,K2=V2,K3=V3...", lambda {|argument, option_parser| return Hash[argument.split(',').map{|ai| ai.split('=')}] }, Hash)
     OptionType.new(:Ints, :ints, "INT1,INT2,INT3...", lambda {|argument, option_parser| return argument.split(',').map(&:to_i) }, lambda {|value| return value.class == Array && value.first.class == Fixnum })
-    OptionType.new(:Integers, :ints, "INT1,INT2,INT3...", lambda {|argument, option_parser| return argument.split(',').map(&:to_i) }, lambda {|value| return value.class == Array && value.first.class == Fixnum })
+    OptionType.new(:Integers, :integers, "INT1,INT2,INT3...", lambda {|argument, option_parser| return argument.split(',').map(&:to_i) }, lambda {|value| return value.class == Array && value.first.class == Fixnum })
     OptionType.new(:Floats, :floats, "NUM1,NUM2,NUM3...", lambda {|argument, option_parser| return argument.split(',').map(&:to_f) }, lambda {|value| return value.class == Array && value.first.class == Float })
     OptionType.new(:Numbers, :numbers, "NUM1,NUM2,NUM3...", lambda {|argument, option_parser| return argument.split(',').map(&:to_f) }, lambda {|value| return value.class == Array && value.first.class == Float })
     OptionType.new(:Strings, :strings, "STR1,STR2,STR3...", lambda {|argument, option_parser| return argument.split(',').map(&:to_s) }, lambda {|value| return value.class == Array && value.first.class == String })
     OptionType.new(:Uris, :uris, "URL1,URL2,URL3...", lambda {|argument, option_parser| return argument.split(',').map{|a| URI.parse(a)} }, lambda {|value| return value.class == Array && value.first.class == URI::HTTP })
     OptionType.new(:Dates, :dates, "DATE1,DATE2,DATE3...", lambda {|argument, option_parser| return argument.split(',').map{|a| Time.zone.parse(a).to_date} }, lambda {|value| return value.class == Array && value.first.class == Date })
     OptionType.new(:Times, :times, "TIME1,TIME2,TIME3...", lambda {|argument, option_parser| return argument.split(',').map{|a| Time.zone.parse(a) } }, lambda {|value| return value.class == Array && value.first.class == Time })
-    OptionType.new(:DateTimes, :times, "TIME1,TIME2,TIME3...", lambda {|argument, option_parser| return argument.split(',').map{|a| Time.zone.parse(a) } }, lambda {|value| return value.class == Array && value.first.class == DateTime })
+    OptionType.new(:DateTimes, :datetimes, "TIME1,TIME2,TIME3...", lambda {|argument, option_parser| return argument.split(',').map{|a| Time.zone.parse(a) } }, lambda {|value| return value.class == Array && value.first.class == DateTime })
     OptionType.new(:Choices, :choices, "CHOICE1,CHOICE2,CHOICE3...", lambda {|argument, option_parser|
                      choice_list = argument.split(',').map(&:to_sym)
                      choices = option_parser.choices
