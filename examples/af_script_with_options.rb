@@ -51,6 +51,10 @@ class AfScriptWithOptions < ::Af::Application
   opt :numbers, "the number lists", :default => [1,2,3]
   opt :switcher, "this is a switch"
 
+  def af_opt_class_path
+    [AfSideComponent] + super
+  end
+
   def logger
     super('Process::T')
   end
@@ -61,12 +65,8 @@ class AfScriptWithOptions < ::Af::Application
     logger.info "WORK STARTED: #{@word}"
     logger.info @words.inspect
     logger.info "NUMBERS: #{@numbers.inspect}"
-    x = ::Foo.find(1)
-    logger.info x.inspect
 
-    Foo.lock_record(1) do
-      logger.info "in lock block: #{@word}"
-    end
+    AfSideComponent.new.do_something
 
     logger.info "WORK COMPLETED: #{@word}"
   end

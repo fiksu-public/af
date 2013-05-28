@@ -9,7 +9,7 @@ module Af
     #
     #      after_create :do_something_after_create
     #
-    #      create_logger :foo
+    #      create_proxy_logger :foo
     #
     #      private
     #      def do_something_after_create
@@ -42,6 +42,11 @@ module Af
         end
 
         def opt(long_name, *extra_stuff, &b)
+          extra_hash = {}
+          if extra_stuff[-1].is_a? Hash
+            extra_hash = extra_stuff.pop
+          end
+          extra_stuff.push extra_hash.merge({:target_container => self})
           return ::Af::Application.opt(long_name, *extra_stuff, &b)
         end
 
@@ -50,7 +55,7 @@ module Af
           if extra_stuff[-1].is_a? Hash
             extra_hash = extra_stuff.pop
           end
-          extra_stuff.push extra_hash.merge({:target_container => self, :disabled => true})
+          extra_stuff.push extra_hash.merge({:target_container => self})
 
           return ::Af::Application.opt_group(group_name, *extra_stuff, &b)
         end
