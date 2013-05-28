@@ -61,7 +61,6 @@ class AfScriptWithOptions < ::Af::Application
 
   def work
     logger.info "switcher: #{switcher.inspect}"
-#    logger.info "foobar: #{Foo.foobar}"
     logger.info "WORK STARTED: #{@word}"
     logger.info @words.inspect
     logger.info "NUMBERS: #{@numbers.inspect}"
