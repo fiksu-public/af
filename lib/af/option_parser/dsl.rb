@@ -194,7 +194,6 @@ module Af::OptionParser
         end
       end
 
-      OptionStore.factory(self)
       Option.factory(long_name, self, factory_hash)
     end
 

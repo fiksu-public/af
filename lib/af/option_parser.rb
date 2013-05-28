@@ -44,7 +44,7 @@ module Af::OptionParser
     OptionType.new(:Uri, :uri, "URI", lambda {|argument, option_parser| return URI.parse(argument) }, URI::HTTP)
     OptionType.new(:Date, :date, "DATE", lambda {|argument, option_parser| return Time.zone.parse(argument).to_date }, Date)
     OptionType.new(:Time, :time, "TIME", lambda {|argument, option_parser| return Time.zone.parse(argument) }, Time)
-    OptionType.new(:DateTime, :time, "TIME", lambda {|argument, option_parser| return Time.zone.parse(argument) }, DateTime)
+    OptionType.new(:DateTime, :datetime, "DATETIME", lambda {|argument, option_parser| return Time.zone.parse(argument) }, DateTime)
     OptionType.new(:Choice, :choice, "CHOICE", lambda {|argument, option_parser|
                      choice = argument.to_sym
                      choices = option_parser.choices

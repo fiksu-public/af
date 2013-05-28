@@ -1,8 +1,6 @@
 module ::Af::Examples
   class ScriptWithOptions < ::Af::Application
-    opt do
-      opt :baz
-      opt :beltch
+    opt_group :advanced, "advanced parameters group" do
     end
 
     opt :foo, :argument => :required, :type => :int, :var => :foo, :env => "FOO", :note => "nothing really", :default => 0, :short => "f"
