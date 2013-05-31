@@ -186,6 +186,7 @@ module Af::OptionParser
       # rename keys in factory hash from the UI names to the API names
 
       {
+        :env => :environment_variable,
         :default => :default_value,
         :type => :option_type,
         :var => :target_variable,
