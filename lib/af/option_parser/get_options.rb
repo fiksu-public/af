@@ -30,16 +30,10 @@ module Af::OptionParser
 
       # Iterate through all of the options.
       declared_options.each do |option|
-        puts "1" * 100
-        puts option.inspect
         # Set aside 
         if option.environment_variable.present?
-          puts "2" * 100
-          puts option.environment_variable.inspect
           # Add enviroment variables to the front of ARGV.
           if ENV[option.environment_variable]
-            puts "3" * 100
-            puts option.environment_variable.inspect
             argv_additions << option.long_name
             unless ENV[option.environment_variable].empty?
               # if the envvar is empty we assume this is a switch (no parameter)
@@ -66,11 +60,6 @@ module Af::OptionParser
 
       # Rewrite ARGV with environment variable with the new list.
       argv_additions.each_with_index { |v,i| ARGV[i] = v }
-
-      puts "*" * 100
-      argv_additions.inspect
-      puts "#" * 100
-      puts ARGV.inspect
 
       super(*getopt_options)
     end
