@@ -10,8 +10,8 @@ Gem::Specification.new do |s|
  s.date        = '2013-05-14'
  s.summary     = "An application framework for ruby on rails based scripts."
  s.description = "Af groups together gems and provides some glue and helper classes to easily creating applications in a ruby on rails environment."
- s.authors     = ["Keith Gabryelski"]
- s.email       = 'keith@fiksu.com'
+ s.authors     = ["Keith Gabryelski", "Leonardo Meira"]
+ s.email       = ['keith@fiksu.com', 'lmeira@fiksu.com']
  s.files       = `git ls-files`.split("\n")
  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
  s.require_path = 'lib'
