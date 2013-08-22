@@ -70,6 +70,7 @@ module Af
       opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string
       opt :log_stderr, "set logfile for stderr (when daemonized)", :type => :string
       opt :log_console, "force logging to console"
+      opt :log_ignore_configuration, "ignore logging configuration files", :default => false
     end
 
     ### Attributes ###

@@ -33,7 +33,7 @@ module Af::Logging
           logger_level_value = logger_level.to_i
         else
           logger_level_value = logger_level.constantize rescue nil
-          logger_level_value = "Log4r::#{logger_level}".constantize rescue nil unless logger_level_value
+          logger_level_value = "Log4r::#{logger_level.upcase}".constantize rescue nil unless logger_level_value
         end
       else
         logger_level_value = Log4r::ALL
@@ -104,16 +104,16 @@ module Af::Logging
     #   * log_level_hash - hash of logger names to logger levels,
     #     i.e. { :foo => 'INFO' }
     def set_logger_levels(log_level_hash)
-      log_level_hash.map { |logger_name, logger_level|
+      log_level_hash.each do |logger_name, logger_level|
         logger_name = :default if logger_name == "default"
         logger_level_value = parse_log_level(logger_level)
         l = logger(logger_name)
         l.level = logger_level_value
-      }
+      end
     end
 
     def configurate
-      if @@log_console
+      if @@log_console || @@log_ignore_configuration
         Log4r::Logger.root.outputters << Log4r::Outputter.stdout
       else
         logging_load_configuration
