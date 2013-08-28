@@ -114,11 +114,6 @@ module Af
     # *Arguments*
     #   * arguments - list of command line option strings
     #
-    # TODO AK: I still don't love that we have to rewrite ARGV to call
-    # applications within Ruby.  I would prefer it if passing a hash of
-    # arguments prevented the use of Getoptlong and the args hash was
-    # processed according to the configred switches.
-    # TODO AK: Can we rename this to "run_with_arguments"?
     def self._run(*arguments)
       # this ARGV hack is here for test specs to add script arguments
       ARGV[0..-1] = arguments if arguments.length > 0
@@ -155,16 +150,14 @@ module Af
         # we do nothing here
         if se.status != 0
           logger.error "exit called with error: #{se.message}"
-          logger.fatal se
+          logger.warn se
           exit se.status
         end
       rescue Exception => e
         # catching Exception cause some programs and libraries suck
         logger.error "fatal error durring work: #{e.message}"
-        logger.fatal e
+        logger.warn e
         @has_errors = true
-        # TODO AK: Can't we just re-raise e and put the call to "exit" in
-        # an "ensure" block? Or does that not make a difference?
       end
 
       if @gc_profiler
@@ -186,10 +179,9 @@ module Af
 
     protected
 
-    # TODO AK: What happens if this is called multiple times? It's not guarenteed
-    # to only return the singleton object, right?
     def initialize
       super
+      # sort of a singleton -- if forced to it really means "last instantiated and current"
       @@singleton = self
       set_connection_application_name(startup_database_application_name)
       $stdout.sync = true

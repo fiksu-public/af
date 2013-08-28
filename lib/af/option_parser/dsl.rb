@@ -205,6 +205,42 @@ module Af::OptionParser
       OptionStore.factory(self).get_option(long_name).merge!(factory_hash)
     end
 
+    def opt_check(var_name, *extra_stuff, &b)
+      factory_hash = {}
+
+      if extra_stuff.is_a? Hash
+        action, targets = extra_stuff.pop
+
+        if [:one_of, :any_of, :one_or_more_of, :none_or_one_of].include?(action)
+          factory_hash[:action] = action
+          if targets.is_a? Symbol
+            factory_hash[:targets] = [targets]
+          elsif targets.is_a? Array
+            factory_hash[:targets] = targets
+          else
+            raise MisconfiguredOptionError.new("#{var_name}: check targets '#{targets.inspect}' must be Symbol or Array")
+          end
+          raise MisconfiguredOptionError.new("#{var_name}: check action '#{action}' given block") unless b.nil?
+        elsif [:requires, :excludes].include?(action)
+          factory_hash[:action] = action
+          if targets.is_a? Hash
+            factory_hash[:targets] = targets
+          else
+            raise MisconfiguredOptionError.new("#{var_name}: check targets '#{targets.inspect}' must be Hash")
+          end
+          raise MisconfiguredOptionError.new("#{var_name}: check action '#{action}' given block") unless b.nil?
+        elsif action == :check
+          raise MisconfiguredOptionError.new("#{var_name}: check action '#{action}' requires block") if b.nil?
+          factory_hash[:block] = b
+        else
+          raise MisconfiguredOptionError.new("unknown check action '#{action}' for #{var_name}")
+        end
+      else
+        raise MisconfiguredOptionError.new("check: #{var_name} must be given a hash")
+      end
+      OptionStore.factory(self).get_option_check(var_name).merge!(factory_hash)
+    end
+
     def opt_error(text)
       puts "ERROR: #{text} (--? for help)"
       exit 1
