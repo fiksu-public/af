@@ -1,11 +1,24 @@
 module ::Af::OptionParser
   class InstanceVariableSetter
-    FACTORY_SETTABLES = [ :evaluation_method, :hidden, :value_to_set_target_variable,
-                          :do_not_create_accessor, :target_variable, :target_container,
-                          :disabled ]
+    FACTORY_SETTABLES = [
+                          :evaluation_method,
+                          :hidden,
+                          :value_to_set_target_variable,
+                          :do_not_create_accessor,
+                          :target_variable,
+                          :target_container,
+                          :disabled
+                        ]
     attr_accessor *FACTORY_SETTABLES
 
-    # ACCESSORS
+    def initialize(parameters = {})
+      set_instance_variables(parameters)
+      @target_container ||= :af_application
+    end
+
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
 
     def target_container
       if @target_container == :af_application
@@ -26,11 +39,6 @@ module ::Af::OptionParser
       return @has_value_to_set_target_variable || false
     end
 
-    def initialize(parameters = {})
-      set_instance_variables(parameters)
-      @target_container ||= :af_application
-    end
-
     def evaluate_and_set_target(argument)
       value = evaluate(argument)
       set_target_variable(value)
@@ -44,10 +52,12 @@ module ::Af::OptionParser
           argument = true
         end
       end
+
       evaluator = @evaluation_method ||
         @option_type ||
         OptionType.find_by_value(argument) ||
         OptionType.find_by_short_name(:switch)
+
       if evaluator.nil?
         raise UndeterminedArgumentTypeError.new(@long_name)
       elsif evaluator.is_a? Proc
@@ -84,11 +94,12 @@ module ::Af::OptionParser
     end
 
     def set_instance_variables(parameters = {}, other_settables = [])
-      parameters.select do |name,value|
+      parameters.select do |name, value|
         (FACTORY_SETTABLES + other_settables).include? name
-      end.each do |name,value|
+      end.each do |name, value|
         instance_variable_set("@#{name}", value)
       end
+
       if parameters[:value_to_set_target_variable]
         @has_value_to_set_target_variable = true
       end
@@ -101,5 +112,6 @@ module ::Af::OptionParser
         end
       end
     end
+
   end
 end

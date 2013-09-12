@@ -28,7 +28,7 @@ describe Af::CommandLiner do
 
   it "returns help options" do
     subject.should_receive(:puts).with(command_line_usage)
-    subject.should_receive(:puts).with("basic: basic options\n These are the stanadard options offered to all Af commands.\n    --? | -?                     show this help (--?? for all)\n    --??                         show help for all commands\n    --application-version | -V   application version")
+    subject.should_receive(:puts).with("basic: basic options\n These are the stanadard optionsThese are the stanadard options offered to all Af commands.\n    --? | -?                     show this help (--?? for all)\n    --??                         show help for all commands\n    --application-version | -V   application version")
 
     subject.help(command_line_usage, true)
   end

@@ -1,8 +1,16 @@
 module ::Af::OptionParser
   class Option < InstanceVariableSetter
-    FACTORY_SETTABLES = [ :option_type, :requirements, :short_name, :argument_note, :note,
-                          :environment_variable, :default_value, 
-                          :option_group_name, :choices ]
+    FACTORY_SETTABLES = [
+                          :option_type,
+                          :requirements,
+                          :short_name,
+                          :argument_note,
+                          :note,
+                          :environment_variable,
+                          :default_value,
+                          :option_group_name,
+                          :choices
+                        ]
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :long_name
 
@@ -10,6 +18,10 @@ module ::Af::OptionParser
       super(parameters)
       @long_name = long_name
     end
+
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
 
     def set_instance_variables(parameters = {})
       super(parameters, FACTORY_SETTABLES)
@@ -23,5 +35,6 @@ module ::Af::OptionParser
       puts "ERROR: #{self.long_name}: #{text} (--? for help)"
       exit 1
     end
+
   end
 end

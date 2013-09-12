@@ -11,15 +11,27 @@ module Af::OptionParser
     end
 
     # Update Options for the provided long switch option name.
-    #  just a helper to UI method "opt"
+    # Just a helper to UI method "opt"
     def opt(long_name, *extra_stuff, &b)
       self.class.opt(long_name, *extra_stuff, &b)
     end
 
     # Update OptionGroups for the provided group option name.
-    #  just a helper to UI method "opt_group"
+    # Just a helper to UI method "opt_group"
     def opt_group(group_name, *extra_stuff, &b)
       self.class.opt_group(group_name, *extra_stuff, &b)
+    end
+
+    # Update OptionGroups for the provided group option name.
+    # Just a helper to UI method "opt_check"
+    def opt_check(var_name, *extra_stuff, &b)
+      self.class.opt_check(var_name, *extra_stuff, &b)
+    end
+
+    # Update OptionGroups for the provided group option name.
+    # Just a helper to UI method "opt_select"
+    def opt_select(var_name, *extra_stuff, &b)
+      self.class.opt_select(var_name, *extra_stuff, &b)
     end
 
     # Collect and process all of the switches (values) on the command
@@ -39,12 +51,13 @@ module Af::OptionParser
       # Iterate through the command line options. Print and exit if the switch
       # is invalid, help or app version.  Otherwise, process and handle.
       begin
-        get_options.each do |long_name,argument|
+        get_options.each do |long_name, argument|
           option_finder.find_option(long_name).evaluate_and_set_target(argument)
         end
       rescue GetoptLong::Error, Error => e
         opt_error e.message
       end
     end
+
   end
 end

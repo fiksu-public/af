@@ -1,14 +1,12 @@
 module ::Af::OptionParser
   class OptionCheck < InstanceVariableSetter
-    ACTIONS = [
-               ONE_OF = 0,
-               NONE_OR_ONE = 1,
-               ONE_OR_MORE_OF = 2,
-               EXCLUDES = 3,
-               REQUIRES = 4,
-               CHECK = 5
-              ]
-    FACTORY_SETTABLES = [ :action, :targets, :error_message, :block ]
+    FACTORY_SETTABLES = [
+                          :action,
+                          :targets,
+                          :error_message,
+                          :block
+                        ]
+
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :var_name
 
@@ -17,6 +15,10 @@ module ::Af::OptionParser
       @var_name = var_name
     end
 
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
+
     def set_instance_variables(parameters = {})
       super(parameters, FACTORY_SETTABLES)
     end
@@ -24,5 +26,41 @@ module ::Af::OptionParser
     def merge(that_option)
       super(that_option, FACTORY_SETTABLES)
     end
+
+    # This methods validates the selected options based
+    # on the chosen action.
+    #
+    # Available actions: requires, excludes
+    #
+    # If an invalidation occurs, an OptionCheckError is raised
+    # with a specific message.
+    def validate
+      # If an option_check is used, the target_variable must be instantiated
+      if target_container.try(target_variable.to_sym).blank?
+        raise OptionCheckError.new("#{target_variable} must be set")
+      end
+
+      # If an option_check is used, an array of options must be given
+      if targets.empty?
+        raise OptionCheckError.new("An array of required/excluded options must be specified")
+      end
+
+      if action == :requires
+        # Each target option must be specified
+        targets.each do |target|
+          if target_container.try(target.to_sym).blank?
+            raise OptionCheckError.new("You must specify these options: #{targets.join(', ')}")
+          end
+        end
+      elsif action == :excludes
+        # None of the target options can be specified
+        targets.each do |target|
+          if target_container.try(target.to_sym).present?
+            raise OptionCheckError.new("You cannot specify these options: #{targets.join(', ')}")
+          end
+        end
+      end
+    end
+
   end
 end

@@ -1,6 +1,10 @@
 module ::Af::OptionParser
   class OptionStore
-    attr_reader :options, :option_groups, :containing_class, :option_checks
+    attr_reader :options,
+                :option_groups,
+                :containing_class,
+                :option_checks,
+                :option_selects
 
     @@option_stores = {}
 
@@ -9,7 +13,25 @@ module ::Af::OptionParser
       @options = {}
       @option_groups = {}
       @option_checks = {}
+      @option_selects = {}
     end
+
+    #----------------------
+    # *** Class Methods ***
+    #++++++++++++++++++++++
+
+    def self.find(containing_class)
+      return @@option_stores[containing_class]
+    end
+
+    def self.factory(containing_class)
+      @@option_stores[containing_class] ||= new(containing_class)
+      return @@option_stores[containing_class]
+    end
+
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
 
     def find_option(long_name)
       return options[long_name]
@@ -50,13 +72,18 @@ module ::Af::OptionParser
       return find_option_check(var_name) || construct_option_check(var_name)
     end
 
-    def self.find(containing_class)
-      return @@option_stores[containing_class]
+    def find_option_select(var_name)
+      return option_selects[var_name]
     end
 
-    def self.factory(containing_class)
-      @@option_stores[containing_class] ||= new(containing_class)
-      return @@option_stores[containing_class]
+    def construct_option_select(var_name)
+      @option_selects[var_name] ||= {}
+      return @option_selects[var_name]
     end
+
+    def get_option_select(var_name)
+      return find_option_select(var_name) || construct_option_select(var_name)
+    end
+
   end
 end

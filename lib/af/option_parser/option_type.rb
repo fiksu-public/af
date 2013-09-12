@@ -1,16 +1,12 @@
 module ::Af::OptionParser
   class OptionType
-    attr_reader :name, :short_name, :argument_note, :evaluate_method, :handler_method
+    attr_reader :name,
+                :short_name,
+                :argument_note,
+                :evaluate_method,
+                :handler_method
 
     @@types = []
-
-    def self.types
-      return @@types
-    end
-
-    def self.valid_option_type_names
-      return types.map(&:short_name)
-    end
 
     def initialize(name, short_name, argument_note, evaluate_method, handler_method)
       @name = name
@@ -20,6 +16,30 @@ module ::Af::OptionParser
       @handler_method = handler_method
       @@types << self
     end
+
+    #----------------------
+    # *** Class Methods ***
+    #++++++++++++++++++++++
+
+    def self.types
+      return @@types
+    end
+
+    def self.valid_option_type_names
+      return types.map(&:short_name)
+    end
+
+    def self.find_by_value(value)
+      return types.find{ |t| t.handle?(value) }
+    end
+
+    def self.find_by_short_name(short_name)
+      return types.find{ |t| t.short_name == short_name }
+    end
+
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
 
     def evaluate_argument(argument, option)
       if @evaluate_method.is_a? Symbol
@@ -35,12 +55,5 @@ module ::Af::OptionParser
       return @handler_method.call(value)
     end
 
-    def self.find_by_value(value)
-      return types.find{|t| t.handle?(value)}
-    end
-
-    def self.find_by_short_name(short_name)
-      return types.find{|t| t.short_name == short_name}
-    end
   end
 end
