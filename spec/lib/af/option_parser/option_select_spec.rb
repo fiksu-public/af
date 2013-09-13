@@ -28,7 +28,7 @@ module Logical
   			it "raise error when one_of action is used and number of options instantiated does not equal to 1" do
   				option_select.action = :one_of
   				expect { option_select.validate }.to raise_error OptionSelectError,
-            'You must specify only one of these options: foo, bar'
+            'You must specify only one of these options: --foo, --bar'
   			end
 
   			it "raise error when none_or_one_of action is used and number of options instantiated is greater than 1" do
@@ -36,13 +36,13 @@ module Logical
   				option_select.target_container.should_receive(:foo).and_return('foo')
   				option_select.target_container.should_receive(:bar).and_return('bar')
   				expect { option_select.validate }.to raise_error OptionSelectError,
-            'You must specify no more than one of these options: foo, bar'
+            'You must specify no more than one of these options: --foo, --bar'
   			end
 
         it "raise error when one_or_more_of action is used and number of options instantiated is less than 1" do
           option_select.action = :one_or_more_of
           expect { option_select.validate }.to raise_error OptionSelectError,
-            'You must specify at least one of these options: foo, bar'
+            'You must specify at least one of these options: --foo, --bar'
         end
     	end
 

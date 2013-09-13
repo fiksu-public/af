@@ -21,7 +21,7 @@ module Logical
         end
 
         it "raise error when target_variable is not set" do
-          expect { option_check.validate }.to raise_error OptionCheckError, 'foo must be specified'
+          expect { option_check.validate }.to raise_error OptionCheckError, 'Option --foo must be specified'
         end
 
         it "raise error when target_variable is not set" do
@@ -35,14 +35,14 @@ module Logical
           option_check.action = :requires
           option_check.target_container.should_receive(:foo).and_return('foo')
           option_check.target_container.should_receive(:bar).and_return(nil)
-          expect { option_check.validate }.to raise_error OptionCheckError, 'You must specify these options: bar'
+          expect { option_check.validate }.to raise_error OptionCheckError, 'You must specify these options: --bar'
         end
 
         it "raise error when excluded options are instantiated" do
           option_check.action = :excludes
           option_check.target_container.should_receive(:foo).and_return('foo')
           option_check.target_container.should_receive(:bar).and_return('bar')
-          expect { option_check.validate }.to raise_error OptionCheckError, 'You cannot specify these options: bar'
+          expect { option_check.validate }.to raise_error OptionCheckError, 'You cannot specify these options: --bar'
         end
       end
     end
