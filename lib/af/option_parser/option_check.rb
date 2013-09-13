@@ -37,26 +37,26 @@ module ::Af::OptionParser
     def validate
       # If an option_check is used, the target_variable must be instantiated
       if target_container.try(target_variable.to_sym).blank?
-        raise OptionCheckError.new("#{target_variable} must be set")
+        raise OptionCheckError.new("Option --#{target_variable} must be specified")
       end
 
       # If an option_check is used, an array of options must be given
       if targets.empty?
-        raise OptionCheckError.new("An array of required/excluded options must be specified")
+        raise OptionCheckError.new("An array of #{action.to_s[0..-2]}d options must be specified")
       end
 
       if action == :requires
         # Each target option must be specified
         targets.each do |target|
           if target_container.try(target.to_sym).blank?
-            raise OptionCheckError.new("You must specify these options: #{targets.join(', ')}")
+            raise OptionCheckError.new("You must specify these options: --#{targets.join(', --')}")
           end
         end
       elsif action == :excludes
         # None of the target options can be specified
         targets.each do |target|
           if target_container.try(target.to_sym).present?
-            raise OptionCheckError.new("You cannot specify these options: #{targets.join(', ')}")
+            raise OptionCheckError.new("You cannot specify these options: --#{targets.join(', --')}")
           end
         end
       end

@@ -213,6 +213,10 @@ module Af::OptionParser
     def opt_check(var_name, *extra_stuff, &b)
       factory_hash = {}
       factory_hash[:target_variable] = var_name[0..-1]
+      # Set the target_container when using an application component
+      if extra_stuff[0][:target_container].present?
+        factory_hash[:target_container] = extra_stuff[0][:target_container]
+      end
 
       if extra_stuff[-1].is_a? Hash
         action, targets = extra_stuff[-1].flatten
@@ -243,6 +247,10 @@ module Af::OptionParser
     def opt_select(var_name, *extra_stuff, &b)
       factory_hash = {}
       factory_hash[:target_variable] = var_name[0..-1]
+      # Set the target_container when using an application component
+      if extra_stuff[0][:target_container].present?
+        factory_hash[:target_container] = extra_stuff[0][:target_container]
+      end
 
       if extra_stuff[-1].is_a? Hash
         action, targets = extra_stuff[-1].flatten

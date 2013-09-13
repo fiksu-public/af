@@ -74,16 +74,8 @@ module ::Af::OptionParser
       return @all_options
     end
 
-    def all_option_checks_by_var_name
-      return @all_option_checks
-    end
-
     def find_option(long_name)
       return all_options_by_long_name[long_name]
-    end
-
-    def find_option_check(var_name)
-      return all_option_checks_by_var_name[var_name]
     end
 
   end

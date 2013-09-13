@@ -48,11 +48,11 @@ module ::Af::OptionParser
       end
 
       if action == :one_of && options_set.size != 1
-        raise OptionSelectError.new("You must specify only one of these options: #{targets.join(', ')}")
+        raise OptionSelectError.new("You must specify only one of these options: --#{targets.join(', --')}")
       elsif action == :none_or_one_of && options_set.size > 1
-        raise OptionSelectError.new("You must specify no more than one of these options: #{targets.join(', ')}")
+        raise OptionSelectError.new("You must specify no more than one of these options: --#{targets.join(', --')}")
       elsif action == :one_or_more_of && options_set.size < 1
-        raise OptionSelectError.new("You must specify at least one of these options: #{targets.join(', ')}")
+        raise OptionSelectError.new("You must specify at least one of these options: --#{targets.join(', --')}")
       end
     end
 

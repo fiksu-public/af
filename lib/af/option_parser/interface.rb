@@ -22,13 +22,13 @@ module Af::OptionParser
       self.class.opt_group(group_name, *extra_stuff, &b)
     end
 
-    # Update OptionGroups for the provided group option name.
+    # Update OptionChecks for the provided group option name.
     # Just a helper to UI method "opt_check"
     def opt_check(var_name, *extra_stuff, &b)
       self.class.opt_check(var_name, *extra_stuff, &b)
     end
 
-    # Update OptionGroups for the provided group option name.
+    # Update OptionSelects for the provided group option name.
     # Just a helper to UI method "opt_select"
     def opt_select(var_name, *extra_stuff, &b)
       self.class.opt_select(var_name, *extra_stuff, &b)
