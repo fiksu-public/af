@@ -24,7 +24,7 @@ module Af::OptionParser
     #   * yeilds to block if given with extra_stuff in a global space that opt/opt_group calls use as defaults
 
     def opt_group(group_name, *extra_stuff)
-      # grab information from our yied scope
+      # grab information from our yield scope
       factory_hash = opt_get_top_of_stack
 
       # update factory_hash with information in array area first (left parameters of the dsl)
@@ -41,13 +41,15 @@ module Af::OptionParser
         factory_hash.merge! maybe_hash
       end
 
+      # Add group_name to OptionStore if it's not present. Otherwise, retrieve the value
+      # associated with that key and merge the value into factory_hash
       OptionStore.factory(self).get_option_group(group_name).merge!(factory_hash)
 
-      # if a block is given, then let the yeilded block 
+      # if a block is given, then let the yielded block
       # have access to our scoped hash.
       if block_given?
         begin
-          @@opt_group_stack.push factory_hash.merge({:group => group_name})
+          @@opt_group_stack.push factory_hash.merge({ group: group_name })
           yield
         ensure
           @@opt_group_stack.pop
@@ -171,7 +173,8 @@ module Af::OptionParser
 
       if factory_hash[:type]
         type = OptionType.find_by_short_name(factory_hash[:type])
-        raise MisconfiguredOptionError.new("#{long_name}: option type #{factory_hash[:type].inspect} is not recognized. (valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless type
+        raise MisconfiguredOptionError.new("#{long_name}: option type #{factory_hash[:type].inspect} is not recognized. " +
+          "(valid option types: #{OptionType.valid_option_type_names.join(', ')})") unless type
         factory_hash[:type]  = type
       end
 
@@ -186,47 +189,44 @@ module Af::OptionParser
       # rename keys in factory hash from the UI names to the API names
 
       {
-        :env => :environment_variable,
-        :default => :default_value,
-        :type => :option_type,
-        :var => :target_variable,
-        :set => :value_to_set_target_variable,
-        :no_accessor => :do_not_create_accessor,
-        :group => :option_group_name,
-        :short => :short_name,
-        :method => :evaluation_method,
-        :argument => :requirements
-      }.each do |current_key_name,new_key_name|
+        env: :environment_variable,
+        default: :default_value,
+        type: :option_type,
+        var: :target_variable,
+        set: :value_to_set_target_variable,
+        no_accessor: :do_not_create_accessor,
+        group: :option_group_name,
+        short: :short_name,
+        method: :evaluation_method,
+        argument: :requirements
+      }.each do |current_key_name, new_key_name|
         if factory_hash.has_key? current_key_name
           factory_hash[new_key_name] = factory_hash.delete(current_key_name)
         end
       end
 
+      # Add long_name to OptionStore if it's not present. Otherwise, retrieve the value
+      # associated with that key and merge the value into factory_hash
       OptionStore.factory(self).get_option(long_name).merge!(factory_hash)
     end
 
     def opt_check(var_name, *extra_stuff, &b)
       factory_hash = {}
+      factory_hash[:target_variable] = var_name[0..-1]
+      # Set the target_container when using an application component
+      if extra_stuff[0][:target_container].present?
+        factory_hash[:target_container] = extra_stuff[0][:target_container]
+      end
 
-      if extra_stuff.is_a? Hash
-        action, targets = extra_stuff.pop
+      if extra_stuff[-1].is_a? Hash
+        action, targets = extra_stuff[-1].flatten
 
-        if [:one_of, :any_of, :one_or_more_of, :none_or_one_of].include?(action)
+        if [:requires, :excludes].include?(action)
           factory_hash[:action] = action
-          if targets.is_a? Symbol
-            factory_hash[:targets] = [targets]
-          elsif targets.is_a? Array
+          if targets.is_a? Array
             factory_hash[:targets] = targets
           else
-            raise MisconfiguredOptionError.new("#{var_name}: check targets '#{targets.inspect}' must be Symbol or Array")
-          end
-          raise MisconfiguredOptionError.new("#{var_name}: check action '#{action}' given block") unless b.nil?
-        elsif [:requires, :excludes].include?(action)
-          factory_hash[:action] = action
-          if targets.is_a? Hash
-            factory_hash[:targets] = targets
-          else
-            raise MisconfiguredOptionError.new("#{var_name}: check targets '#{targets.inspect}' must be Hash")
+            raise MisconfiguredOptionError.new("#{var_name}: check targets '#{targets.inspect}' must be Array")
           end
           raise MisconfiguredOptionError.new("#{var_name}: check action '#{action}' given block") unless b.nil?
         elsif action == :check
@@ -238,7 +238,43 @@ module Af::OptionParser
       else
         raise MisconfiguredOptionError.new("check: #{var_name} must be given a hash")
       end
+
+      # Add var_name to OptionStore if it's not present. Otherwise, retrieve the value
+      # associated with that key and merge the value into factory_hash
       OptionStore.factory(self).get_option_check(var_name).merge!(factory_hash)
+    end
+
+    def opt_select(var_name, *extra_stuff, &b)
+      factory_hash = {}
+      factory_hash[:target_variable] = var_name[0..-1]
+      # Set the target_container when using an application component
+      if extra_stuff[0][:target_container].present?
+        factory_hash[:target_container] = extra_stuff[0][:target_container]
+      end
+
+      if extra_stuff[-1].is_a? Hash
+        action, targets = extra_stuff[-1].flatten
+
+        if [:one_of, :one_or_more_of, :none_or_one_of].include?(action)
+          factory_hash[:action] = action
+          if targets.is_a? Symbol
+            factory_hash[:targets] = [targets]
+          elsif targets.is_a? Array
+            factory_hash[:targets] = targets
+          else
+            raise MisconfiguredOptionError.new("#{var_name}: select targets '#{targets.inspect}' must be Symbol or Array")
+          end
+          raise MisconfiguredOptionError.new("#{var_name}: select action '#{action}' given block") unless b.nil?
+        else
+          raise MisconfiguredOptionError.new("unknown select action '#{action}' for #{var_name}")
+        end
+      else
+        raise MisconfiguredOptionError.new("select: #{var_name} must be given a hash")
+      end
+
+      # Add var_name to OptionStore if it's not present. Otherwise, retrieve the value
+      # associated with that key and merge the value into factory_hash
+      OptionStore.factory(self).get_option_select(var_name).merge!(factory_hash)
     end
 
     def opt_error(text)

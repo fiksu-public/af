@@ -1,9 +1,7 @@
 require 'spec_helper'
 
 class MyScript < Af::Application
-  opt do
-    opt :bar
-  end
+  opt :bar
 
   def work
     puts "baz"
@@ -11,9 +9,7 @@ class MyScript < Af::Application
 end
 
 class ErrorScript < Af::Application
-  opt do
-    opt :bar
-  end
+  opt :bar
 
   def work
     raise Exception
@@ -21,16 +17,15 @@ class ErrorScript < Af::Application
 end
 
 describe Af::Application do
-
   subject { MyScript.new }
 
   it "returns connections name when #connection_application_name is called" do
-    subject.set_connection_application_name("Application name")
+    subject.send(:set_connection_application_name, "Application name")
     ActiveRecord::ConnectionAdapters::ConnectionPool.connection_application_name.should == "Application name"
   end
 
   it "returns process PID and af name when #startup_database_application_name is called" do
-    subject.startup_database_application_name.should =~ /MyScript$/
+    subject.send(:startup_database_application_name).should =~ /MyScript$/
   end
 
   it "returns class name when #af_name is called" do
@@ -61,5 +56,5 @@ describe Af::Application do
       error.status.should == 0
     }
   end
-  
-end # Af::Application
+
+end

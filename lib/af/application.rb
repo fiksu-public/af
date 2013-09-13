@@ -21,13 +21,15 @@ module Af
     include Af::Logging
     include Af::Deprecated
 
-    ### Command Line Options ###
+    #-----------------------------
+    # *** Command Line Options ***
+    #+++++++++++++++++++++++++++++
 
     # A number of default command line switches and switch groups available to all
     # subclasses.
 
     opt_group :basic, "basic options", :priority => 0, :description => <<-DESCRIPTION
-      These are the stanadard options offered to all Af commands.
+      These are the standard options offered to all Af commands.
     DESCRIPTION
 
     opt_group :basic do
@@ -60,11 +62,12 @@ module Af
       These are options associated with logging whose core is Log4r.
       Logging files should be in yaml format and should probably define a logger for 'Af' and 'Process'.
     DESCRIPTION
-    
+
     opt_group :logging, :target_container => Af::Logging::Configurator do
       opt :log_configuration_files, "a list of yaml files for log4r to use as configurations", :type => :strings, :default => ["af.yml"]
       opt :log_configuration_search_path, "directories to search for log4r files", :type => :strings, :default => ["."]
-      opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings, :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES'
+      opt :log_configuration_section_names, "section names in yaml files for log4r configurations", :type => :strings,
+        :default => ["log4r_config"], :env => 'LOG_CONFIGURATION_SECTION_NAMES'
       opt :log_dump_configuration, "show the log4r configuration"
       opt :log_levels, "set log levels", :type => :hash
       opt :log_stdout, "set logfile for stdout (when daemonized)", :type => :string
@@ -73,13 +76,17 @@ module Af
       opt :log_ignore_configuration, "ignore logging configuration files", :default => false
     end
 
-    ### Attributes ###
+    #-------------------
+    # *** Attributes ***
+    #+++++++++++++++++++
 
     attr_accessor :has_errors
 
     @@singleton = nil
 
-    ### Class methods ###
+    #----------------------
+    # *** Class Methods ***
+    #++++++++++++++++++++++
 
     # Instantiate and run the application.
     #
@@ -120,7 +127,9 @@ module Af
       self.new._run
     end
 
-    ### Instance Methods ###
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
 
     # Run the application, fetching and parsing options from the command
     # line.
@@ -216,9 +225,25 @@ module Af
       raise NotImplemented.new("#{self.class.name}#work must be implemented to use the Application framework")
     end
 
-    # Overload to do any command line parsing.
-    # Call exit if needed.  Always call super.
     def post_command_line_parsing
+      # Iterate through all option_checks and option_selects in the class hierarchy.
+      # Create instance variables and accessor methods for each.
+      option_finder = OptionFinder.new(af_opt_class_path)
+
+      option_checks = option_finder.all_option_checks
+      option_selects = option_finder.all_option_selects
+
+      begin
+        option_checks.each do |option_check|
+          option_check.validate
+        end
+
+        option_selects.each do |option_select|
+          option_select.validate
+        end
+      rescue GetoptLong::Error, Error => e
+        opt_error e.message
+      end
     end
 
     # Overload to do any operations that need to be handled before work is called.

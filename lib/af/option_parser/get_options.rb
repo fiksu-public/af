@@ -1,7 +1,6 @@
 require 'getoptlong'
 
 module Af::OptionParser
-
   # Subclasses Getoptlong from the Ruby standard library.
   # Docs: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/getoptlong/rdoc/GetoptLong.html.
   # Source: https://github.com/ruby/ruby/blob/trunk/lib/getoptlong.rb.
@@ -25,19 +24,18 @@ module Af::OptionParser
     #         :note => <arg description>
     def initialize(declared_options = [])
       getopt_options = []
-
       argv_additions = []
 
       # Iterate through all of the options.
       declared_options.each do |option|
-        # Set aside 
+        # Set aside
         if option.environment_variable.present?
           # Add enviroment variables to the front of ARGV.
           if ENV[option.environment_variable]
             argv_additions << option.long_name
             unless ENV[option.environment_variable].empty?
               # if the envvar is empty we assume this is a switch (no parameter)
-              argv_additions << ENV[option.environment_variable] 
+              argv_additions << ENV[option.environment_variable]
             end
           end
         end

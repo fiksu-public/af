@@ -1,6 +1,10 @@
 module ::Af::OptionParser
   class OptionGroup
-    FACTORY_SETTABLES = [:title, :priority, :description, :hidden, :disabled]
+    FACTORY_SETTABLES = [:title,
+                         :priority,
+                         :description,
+                         :hidden,
+                         :disabled]
     attr_accessor *FACTORY_SETTABLES
     attr_accessor :group_name
 
@@ -8,6 +12,10 @@ module ::Af::OptionParser
       @group_name = group_name
       set_instance_variables(parameters)
     end
+
+    #-------------------------
+    # *** Instance Methods ***
+    #+++++++++++++++++++++++++
 
     def set_instance_variables(parameters = {})
       parameters.select do |name,value|
@@ -24,5 +32,6 @@ module ::Af::OptionParser
         end
       end
     end
+
   end
 end

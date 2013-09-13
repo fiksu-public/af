@@ -29,11 +29,12 @@ module Af
           if !prefix.blank? && prefix[-1] != '_'
             prefix = "#{prefix}_"
           end
+
           method_name = "#{prefix}logger"
           class_eval <<-CLASS_EVAL
-          def #{create_class_method ? 'self.' : ''}#{method_name}
-            return Log4r::Logger['#{logger_name}'] || Log4r::Logger.new('#{logger_name}')
-          end
+            def #{create_class_method ? 'self.' : ''}#{method_name}
+              return Log4r::Logger['#{logger_name}'] || Log4r::Logger.new('#{logger_name}')
+            end
           CLASS_EVAL
         end
 
@@ -42,22 +43,31 @@ module Af
         end
 
         def opt(long_name, *extra_stuff, &b)
-          extra_hash = {}
-          if extra_stuff[-1].is_a? Hash
-            extra_hash = extra_stuff.pop
-          end
-          extra_stuff.push extra_hash.merge({:target_container => self})
+          add_target_container(extra_stuff)
           return ::Af::Application.opt(long_name, *extra_stuff, &b)
         end
 
         def opt_group(group_name, *extra_stuff, &b)
+          add_target_container(extra_stuff)
+          return ::Af::Application.opt_group(group_name, *extra_stuff, &b)
+        end
+
+        def opt_check(var_name, *extra_stuff, &b)
+          add_target_container(extra_stuff)
+          return ::Af::Application.opt_check(var_name, *extra_stuff, &b)
+        end
+
+        def opt_select(var_name, *extra_stuff, &b)
+          add_target_container(extra_stuff)
+          return ::Af::Application.opt_select(var_name, *extra_stuff, &b)
+        end
+
+        def add_target_container(extra_stuff)
           extra_hash = {}
           if extra_stuff[-1].is_a? Hash
             extra_hash = extra_stuff.pop
           end
-          extra_stuff.push extra_hash.merge({:target_container => self})
-
-          return ::Af::Application.opt_group(group_name, *extra_stuff, &b)
+          extra_stuff.push extra_hash.merge({ target_container: self })
         end
       end
 
