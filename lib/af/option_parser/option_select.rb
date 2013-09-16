@@ -47,6 +47,14 @@ module ::Af::OptionParser
         end
       end
 
+      # Assign instantiated options to an instance variable
+      if options_set.size == 1
+        value = options_set.first
+      else
+        value = options_set
+      end
+      target_container.instance_variable_set("@#{target_variable}", value)
+
       if action == :one_of && options_set.size != 1
         raise OptionSelectError.new("You must specify only one of these options: --#{targets.join(', --')}")
       elsif action == :none_or_one_of && options_set.size > 1
