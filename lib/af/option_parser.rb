@@ -41,6 +41,19 @@ module Af::OptionParser
                        end
                      end
                    }, lambda{ |value| return (value.is_a?(TrueClass) || value.is_a?(FalseClass)) })
+    OptionType.new(:Boolean, :boolean, "", lambda {|argument,option|
+                     if ["t", "true", "yes", "on"].include?(argument.to_s.downcase)
+                       return true
+                     elsif ["f", "false", "no", "off"].include?(argument.to_s.downcase)
+                       return false
+                     else
+                       if option.default_value == nil
+                         return true
+                       else
+                         return !option.default_value
+                       end
+                     end
+                   }, lambda{ |value| return (value.is_a?(TrueClass) || value.is_a?(FalseClass)) })
     OptionType.new(:Int, :int, "INTEGER", :to_i, Fixnum)
     OptionType.new(:Integer, :integer, "INTEGER", :to_i, Fixnum)
     OptionType.new(:Float, :float, "NUMBER", :to_f, Float)
