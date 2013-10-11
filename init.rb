@@ -1,1 +1,1 @@
-require 'af.rb'
+require 'fiksu-af.rb'
