@@ -1,7 +1,7 @@
 $LOAD_PATH.push File.expand_path("../lib", __FILE__)
 
 # Maintain your gem's version:
-require "af/version"
+require "fiksu-af/version"
 
 Gem::Specification.new do |s|
  s.name        = 'fiksu-af'
