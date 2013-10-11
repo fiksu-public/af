@@ -1,5 +1,7 @@
 # Af - an application framework
 
+gem 'fiksu-af'
+
 This application framework supports:
 
 * an Application class with supporting infrastruction
