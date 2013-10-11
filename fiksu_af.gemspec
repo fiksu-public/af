@@ -4,7 +4,7 @@ $LOAD_PATH.push File.expand_path("../lib", __FILE__)
 require "af/version"
 
 Gem::Specification.new do |s|
- s.name        = 'fiksu-af'
+ s.name        = 'fiksu_af'
  s.version     = Af::VERSION
  s.license     = 'New BSD License'
  s.date        = '2013-10-11'
