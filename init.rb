@@ -1,1 +1,0 @@
-require 'fiksu-af.rb'
