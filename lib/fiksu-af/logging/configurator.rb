@@ -113,7 +113,7 @@ module Af::Logging
     end
 
     def configurate
-      if @@log_console || @@log_ignore_configuration
+      if (@@log_console || @@log_ignore_configuration) && !@@log_configurate
         Log4r::Logger.root.outputters << Log4r::Outputter.stdout
       else
         logging_load_configuration
