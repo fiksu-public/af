@@ -67,7 +67,7 @@ module Af
           if extra_stuff[-1].is_a? Hash
             extra_hash = extra_stuff.pop
           end
-          extra_stuff.push extra_hash.merge({ target_container: self })
+          extra_stuff.push extra_hash.merge({ target_container: self, containing_class: self })
         end
       end
 
