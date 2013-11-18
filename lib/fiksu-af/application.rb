@@ -165,7 +165,7 @@ module Af
         end
       rescue Exception => e
         # catching Exception cause some programs and libraries suck
-        logger.error "fatal error durring work: #{e.message}"
+        logger.error "fatal error during work: #{e.message}"
         logger.warn e
         @has_errors = true
       end
