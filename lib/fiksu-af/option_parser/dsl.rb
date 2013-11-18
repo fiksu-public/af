@@ -20,6 +20,7 @@ module Af::OptionParser
     #     * :priority - order to show groups in help --?
     #     * :hidden - true if this group's options should only be seen with --?
     #     * :disabled - (default: false)
+    #     * :containing_class - name of class path for this option (for: af_opt_class_path)
     #     *  anything else in this hash can be passed to yield block as defaults for other opt/opt_group invocations
     #   * yeilds to block if given with extra_stuff in a global space that opt/opt_group calls use as defaults
 
@@ -78,6 +79,7 @@ module Af::OptionParser
     #     :no_accessor - (:do_not_create_accessor) don't class_eval 'attr_accessor :#{target_variable}'
     #     :var - (:target_variable) name of instance variable to set
     #     :target_container - name of object to set instance value
+    #     :containing_class - name of class path for this option (for: af_opt_class_path)
     #
     # if block is passed it is used as :method
     #
@@ -207,7 +209,7 @@ module Af::OptionParser
 
       # Add long_name to OptionStore if it's not present. Otherwise, retrieve the value
       # associated with that key and merge the value into factory_hash
-      OptionStore.factory(self).get_option(long_name).merge!(factory_hash)
+      OptionStore.factory(factory_hash[:containing_class] || self).get_option(long_name).merge!(factory_hash)
     end
 
     def opt_check(var_name, *extra_stuff, &b)
