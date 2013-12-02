@@ -163,6 +163,10 @@ module Af
           logger.warn se
           exit se.status
         end
+      rescue SignalException => e
+        logger.error "receiving signal: #{e.message}"
+        logger.warn e
+        @has_errors = true
       rescue Exception => e
         # catching Exception cause some programs and libraries suck
         logger.error "fatal error during work: #{e.message}"
